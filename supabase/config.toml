@@ -1,0 +1,5 @@
+# Replace after: npm run supabase:link
+project_id = "angle-app"
+
+[api]
+enabled = true
