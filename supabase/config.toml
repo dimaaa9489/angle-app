@@ -1,5 +1,5 @@
-# Replace after: npm run supabase:link
-project_id = "angle-app"
+# Supabase project (DotMap) — shared with war-map-project
+project_id = "bnjvnkjksuojqhtjflvh"
 
 [api]
 enabled = true

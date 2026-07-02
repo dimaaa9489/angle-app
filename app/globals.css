@@ -1,26 +1,224 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --glass-chip: rgba(255, 255, 255, 0.14);
+  --search-fill: rgba(0, 0, 0, 0.28);
+  --search-filter: rgba(0, 0, 0, 0.35);
+  --home-panel: rgba(255, 255, 255, 0.12);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  margin: 0;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  background: #3d2e24;
+  color: #fff;
+}
+
+.angle-app-root {
+  position: relative;
+  height: 100dvh;
+  height: 100svh;
+  overflow: hidden;
+  background: #4a382c;
+}
+
+.angle-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.06);
+  filter: blur(16px) saturate(1.05);
+}
+
+.angle-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 15%, rgba(255, 220, 180, 0.2), transparent 50%),
+    linear-gradient(180deg, rgba(50, 38, 30, 0.1), rgba(25, 18, 14, 0.5));
+}
+
+.angle-page {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.angle-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.angle-home-panel {
+  background: var(--home-panel);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 32px;
+  overflow: hidden;
+  color: #fff;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .angle-home-panel,
+  .angle-inner-glass,
+  .angle-bottom-nav {
+    background: rgba(55, 42, 34, 0.92);
+  }
+}
+
+.angle-glass-chip {
+  background: var(--glass-chip);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 18px;
+  transition: transform 0.2s ease;
+}
+
+.angle-glass-chip:active {
+  transform: scale(0.96);
+}
+
+.angle-search-pill {
+  min-height: 48px;
+  border-radius: 16px;
+  background: var(--search-fill);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.angle-search-filter {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--search-filter);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.18s ease;
+}
+
+.angle-search-filter:active {
+  transform: scale(0.94);
+}
+
+.angle-search-filter-active {
+  border-color: rgba(255, 214, 164, 0.85);
+  background: rgba(184, 149, 107, 0.58);
+  box-shadow: 0 0 0 1px rgba(255, 214, 164, 0.22);
+}
+
+.angle-popular-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: transform 0.22s ease;
+}
+
+.angle-popular-card:active {
+  transform: scale(0.97);
+}
+
+.angle-bottom-nav {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.angle-nav-item {
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s ease, transform 0.18s ease;
+}
+
+.angle-nav-item[data-active="true"] {
+  color: #fff;
+}
+
+.angle-nav-item:active {
+  transform: scale(0.92);
+}
+
+.angle-section-link {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.angle-inner-glass {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+}
+
+.safe-top {
+  padding-top: max(12px, env(safe-area-inset-top));
+}
+
+.safe-bottom {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+
+.filter-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.filter-chip-active {
+  border-color: rgba(255, 214, 164, 0.9);
+  background: rgba(184, 149, 107, 0.72);
+  color: #fff;
+  box-shadow:
+    0 0 0 1px rgba(255, 214, 164, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.filter-step-active {
+  border-color: rgba(255, 214, 164, 0.9);
+  background: rgba(184, 149, 107, 0.72);
+  color: #fff;
+  box-shadow:
+    0 0 0 1px rgba(255, 214, 164, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+img {
+  -webkit-user-drag: none;
+  user-select: none;
 }
