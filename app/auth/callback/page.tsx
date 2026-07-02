@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { GlassCard } from "@/components/GlassCard";
+import { OAUTH_NEXT_KEY } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
 function readOAuthError(): string | null {
@@ -35,9 +36,16 @@ export default function AuthCallbackPage() {
     let subscription: { unsubscribe: () => void } | undefined;
     let timeout: ReturnType<typeof setTimeout> | undefined;
 
-    const goProfile = () => {
+    const goNext = () => {
       if (timeout) clearTimeout(timeout);
-      router.replace("/profile");
+      const next =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem(OAUTH_NEXT_KEY) || "/profile"
+          : "/profile";
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem(OAUTH_NEXT_KEY);
+      }
+      router.replace(next);
     };
 
     const fail = (message: string) => {
@@ -60,7 +68,7 @@ export default function AuthCallbackPage() {
           data: { session: existing },
         } = await supabase.auth.getSession();
         if (existing) {
-          goProfile();
+          goNext();
           return;
         }
 
@@ -69,7 +77,7 @@ export default function AuthCallbackPage() {
           fail(exchangeError.message);
           return;
         }
-        goProfile();
+        goNext();
         return;
       }
 
@@ -85,7 +93,7 @@ export default function AuthCallbackPage() {
           return;
         }
         if (session) {
-          goProfile();
+          goNext();
           return;
         }
       }
@@ -99,7 +107,7 @@ export default function AuthCallbackPage() {
         return;
       }
       if (session) {
-        goProfile();
+        goNext();
         return;
       }
 
@@ -112,7 +120,7 @@ export default function AuthCallbackPage() {
             event === "TOKEN_REFRESHED" ||
             event === "INITIAL_SESSION")
         ) {
-          goProfile();
+          goNext();
         }
       });
       subscription = sub;

@@ -2,6 +2,16 @@ import { MOCK_POSES } from "@/lib/mock-poses";
 import { supabase } from "@/lib/supabase";
 import type { Pose } from "@/lib/types";
 
+function hasSupabaseConfig() {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
+
+function shouldUseMocks() {
+  return !hasSupabaseConfig() && process.env.NODE_ENV === "development";
+}
+
 function rowToPose(row: Record<string, unknown>): Pose {
   return {
     id: String(row.id),
@@ -20,6 +30,8 @@ function rowToPose(row: Record<string, unknown>): Pose {
 }
 
 export async function fetchPoses(): Promise<Pose[]> {
+  if (shouldUseMocks()) return MOCK_POSES;
+
   try {
     const { data, error } = await supabase
       .from("poses")
@@ -27,10 +39,14 @@ export async function fetchPoses(): Promise<Pose[]> {
       .eq("is_published", true)
       .order("created_at", { ascending: false });
 
-    if (error || !data?.length) return MOCK_POSES;
-    return data.map((row) => rowToPose(row as Record<string, unknown>));
-  } catch {
-    return MOCK_POSES;
+    if (error) {
+      console.warn("[poses] fetch failed:", error.message);
+      return shouldUseMocks() ? MOCK_POSES : [];
+    }
+    return (data ?? []).map((row) => rowToPose(row as Record<string, unknown>));
+  } catch (error) {
+    console.warn("[poses] fetch error:", error);
+    return shouldUseMocks() ? MOCK_POSES : [];
   }
 }
 
@@ -39,6 +55,8 @@ export async function fetchPosesPage(
   offset: number,
   limit = 12
 ): Promise<{ poses: Pose[]; hasMore: boolean }> {
+  if (shouldUseMocks()) return getMockPosesPage(offset, limit);
+
   try {
     const { data, error, count } = await supabase
       .from("poses")
@@ -47,15 +65,17 @@ export async function fetchPosesPage(
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (error || !data?.length) {
-      return getMockPosesPage(offset, limit);
+    if (error) {
+      console.warn("[poses] page failed:", error.message);
+      return shouldUseMocks() ? getMockPosesPage(offset, limit) : { poses: [], hasMore: false };
     }
 
-    const poses = data.map((row) => rowToPose(row as Record<string, unknown>));
+    const poses = (data ?? []).map((row) => rowToPose(row as Record<string, unknown>));
     const total = count ?? poses.length;
     return { poses, hasMore: offset + poses.length < total };
-  } catch {
-    return getMockPosesPage(offset, limit);
+  } catch (error) {
+    console.warn("[poses] page error:", error);
+    return shouldUseMocks() ? getMockPosesPage(offset, limit) : { poses: [], hasMore: false };
   }
 }
 
@@ -73,6 +93,8 @@ function getMockPosesPage(offset: number, limit: number) {
 }
 
 export async function fetchPoseById(id: string): Promise<Pose | null> {
+  if (shouldUseMocks()) return MOCK_POSES.find((p) => p.id === id) ?? null;
+
   try {
     const { data, error } = await supabase
       .from("poses")
@@ -80,34 +102,14 @@ export async function fetchPoseById(id: string): Promise<Pose | null> {
       .eq("id", id)
       .maybeSingle();
 
-    if (error || !data) {
-      return MOCK_POSES.find((p) => p.id === id) ?? null;
+    if (error) {
+      console.warn("[poses] by id failed:", error.message);
+      return null;
     }
+    if (!data) return null;
     return rowToPose(data as Record<string, unknown>);
-  } catch {
-    return MOCK_POSES.find((p) => p.id === id) ?? null;
+  } catch (error) {
+    console.warn("[poses] by id error:", error);
+    return null;
   }
-}
-
-export async function createPoseRecord(pose: Omit<Pose, "id" | "createdAt">) {
-  const { data, error } = await supabase
-    .from("poses")
-    .insert({
-      image_url: pose.imageUrl,
-      image_key: pose.imageKey,
-      title: pose.title,
-      keywords: pose.keywords,
-      category: pose.category,
-      shot_type: pose.shotType,
-      locations: pose.locations,
-      people_count: pose.peopleCount,
-      session_types: pose.sessionTypes,
-      styles: pose.styles,
-      is_published: true,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return rowToPose(data as Record<string, unknown>);
 }

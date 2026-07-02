@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 /** Add to Supabase → Authentication → URL Configuration → Redirect URLs */
 export const NATIVE_OAUTH_REDIRECT = "com.angle.app://auth/callback";
 
+export const OAUTH_NEXT_KEY = "angle_oauth_next";
+
 export function getOAuthRedirectUrl(): string {
   if (typeof window !== "undefined" && Capacitor.isNativePlatform()) {
     return NATIVE_OAUTH_REDIRECT;
@@ -13,7 +15,10 @@ export function getOAuthRedirectUrl(): string {
   return `${getApiBase()}/auth/callback`;
 }
 
-export async function signInWithGoogle(): Promise<void> {
+export async function signInWithGoogle(nextPath = "/profile"): Promise<void> {
+  if (typeof window !== "undefined") {
+    sessionStorage.setItem(OAUTH_NEXT_KEY, nextPath);
+  }
   const redirectTo = getOAuthRedirectUrl();
   const options = {
     redirectTo,
