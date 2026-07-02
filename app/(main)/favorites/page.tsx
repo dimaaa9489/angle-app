@@ -68,10 +68,8 @@ export default function FavoritesPage() {
     [sortedFolders, getFolderItems, poseMap]
   );
 
-  const activePoseIds = getFolderItems(activeFolder);
-  const activePoses = activeFolder
-    ? poses.filter((p) => activePoseIds.includes(p.id))
-    : [];
+  const activePoseIds = activeFolder ? getFolderItems(activeFolder) : [];
+  const activePoses = poses.filter((p) => activePoseIds.includes(p.id));
   const activeFolderMeta = activeFolder
     ? folders.find((folder) => folder.id === activeFolder) ?? null
     : null;

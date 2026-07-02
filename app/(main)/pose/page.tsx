@@ -25,7 +25,7 @@ function PoseDetailInner() {
   const getPoseFolderIds = useFavoritesStore((s) => s.getPoseFolderIds);
   const setPoseFolders = useFavoritesStore((s) => s.setPoseFolders);
   const selectableFolders = folders.filter((folder) => folder.id !== SAVED_FOLDER_ID);
-  const folderIds = getPoseFolderIds(id);
+  const folderIds = id ? getPoseFolderIds(id) : [];
   const isInCustomFolder = folderIds.some((folderId) => folderId !== SAVED_FOLDER_ID);
 
   useEffect(() => {
