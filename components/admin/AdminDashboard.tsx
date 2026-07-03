@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+import { AdminConfigBanner } from "@/components/admin/AdminConfigBanner";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { AdminPoseList } from "@/components/admin/AdminPoseList";
 import { AdminUploadPanel } from "@/components/admin/AdminUploadPanel";
@@ -13,6 +14,7 @@ export function AdminDashboard() {
 
   return (
     <AdminGate>
+      <AdminConfigBanner />
       <div className="mb-6 flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-[#B8956B]">

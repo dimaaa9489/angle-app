@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import { ImagePlus, Loader2, Upload, X } from "lucide-react";
 
-import { adminFetch } from "@/lib/admin-api";
+import { adminFetch, adminUploadFile } from "@/lib/admin-api";
 import {
   FILTER_CATEGORIES,
   FILTER_LOCATIONS,
@@ -114,20 +114,7 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
         const keywords = parseHashtags(item.hashtags);
         const title = item.title.trim() || item.file.name;
 
-        const { uploadUrl, publicUrl, key } = await adminFetch("/api/upload/presign", {
-          method: "POST",
-          body: JSON.stringify({
-            filename: item.file.name,
-            contentType: item.file.type || "image/jpeg",
-          }),
-        });
-
-        const putRes = await fetch(uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": item.file.type || "image/jpeg" },
-          body: item.file,
-        });
-        if (!putRes.ok) throw new Error("Не удалось загрузить фото в облако");
+        const { publicUrl, key } = await adminUploadFile(item.file);
 
         const { pose } = await adminFetch("/api/poses", {
           method: "POST",
@@ -167,7 +154,7 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
         <div>
           <h2 className="text-xl font-bold text-white">Загрузка поз</h2>
           <p className="mt-1 text-sm text-white/50">
-            Фото → Cloudflare R2 → Supabase → сразу в ленте приложения
+            Фото → сервер Vercel → R2 → Supabase → сразу в ленте
           </p>
         </div>
         {pendingCount > 0 ? (

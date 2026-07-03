@@ -16,6 +16,10 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("[presign]", error);
-    return NextResponse.json({ error: "Presign failed" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Presign failed";
+    const hint = message.startsWith("Missing env:")
+      ? `На Vercel не заданы переменные R2. Добавь ${message.replace("Missing env: ", "")} в Settings → Environment Variables.`
+      : message;
+    return NextResponse.json({ error: hint }, { status: 500 });
   }
 }
