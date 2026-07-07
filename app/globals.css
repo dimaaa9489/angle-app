@@ -39,7 +39,14 @@ body {
   background-size: cover;
   background-position: center;
   transform: scale(1.06);
-  filter: blur(16px) saturate(1.05);
+  filter: blur(10px) saturate(1.05);
+}
+
+@media (min-width: 768px) {
+  .angle-bg-layer {
+    filter: none;
+    transform: none;
+  }
 }
 
 .angle-vignette {
@@ -68,6 +75,7 @@ body {
   overflow-x: hidden;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+  overflow-anchor: none;
 }
 
 .angle-home-panel {
@@ -108,6 +116,26 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.angle-feed-grid {
+  contain: layout style;
+}
+
+.angle-home-header-wrap {
+  contain: layout style paint;
+  will-change: transform;
+}
+
+.angle-home-header-hidden {
+  transform: translate3d(0, -100%, 0);
+  margin-bottom: calc(-1 * var(--home-header-h, 132px));
+  pointer-events: none;
+}
+
+.angle-home-header-visible {
+  transform: translate3d(0, 0, 0);
+  margin-bottom: 0;
+}
+
 .angle-search-filter {
   width: 48px;
   height: 48px;
@@ -132,7 +160,6 @@ body {
   overflow: hidden;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  transition: transform 0.22s ease;
 }
 
 .angle-popular-card:active {

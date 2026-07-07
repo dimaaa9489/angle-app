@@ -1,17 +1,16 @@
 "use client";
 
-import Image from "next/image";
+import { memo, useCallback } from "react";
 import Link from "next/link";
 import { Heart, Share2 } from "lucide-react";
-import { motion } from "framer-motion";
 
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 import type { Pose } from "@/lib/types";
 
 type PoseCardProps = {
   pose: Pose;
-  index?: number;
   aspect?: "tall" | "medium" | "short";
+  priority?: boolean;
 };
 
 const aspectClass = {
@@ -20,36 +19,73 @@ const aspectClass = {
   short: "h-[180px]",
 };
 
-export function PoseCard({ pose, index = 0, aspect = "medium" }: PoseCardProps) {
-  const isStarred = useFavoritesStore((s) => s.isStarred(pose.id));
+const PoseCardActions = memo(function PoseCardActions({
+  poseId,
+  title,
+}: {
+  poseId: string;
+  title: string;
+}) {
+  const isStarred = useFavoritesStore((s) => s.isStarred(poseId));
   const toggleStar = useFavoritesStore((s) => s.toggleStar);
 
-  const sharePose = async () => {
-    const url = `${window.location.origin}/pose?id=${pose.id}`;
+  const sharePose = useCallback(async () => {
+    const url = `${window.location.origin}/pose?id=${poseId}`;
     if (navigator.share) {
-      await navigator.share({ title: pose.title, url });
+      await navigator.share({ title, url });
     } else {
       await navigator.clipboard.writeText(url);
     }
-  };
+  }, [poseId, title]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04, duration: 0.35 }}
-      className="mb-3 break-inside-avoid"
-    >
+    <div className="absolute right-2 top-2 flex gap-1.5">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          toggleStar(poseId);
+        }}
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm transition-transform active:scale-90"
+        aria-label="В избранное"
+      >
+        <Heart
+          size={15}
+          className={isStarred ? "fill-[#ff6b7a] text-[#ff6b7a]" : "text-white"}
+        />
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          void sharePose();
+        }}
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm transition-transform active:scale-90"
+        aria-label="Поделиться"
+      >
+        <Share2 size={15} className="text-white" />
+      </button>
+    </div>
+  );
+});
+
+export const PoseCard = memo(function PoseCard({
+  pose,
+  aspect = "medium",
+  priority = false,
+}: PoseCardProps) {
+  return (
+    <article className="angle-feed-card mb-3 break-inside-avoid">
       <Link href={`/pose?id=${pose.id}`} className="group block">
-        <div
-          className={`angle-popular-card relative overflow-hidden ${aspectClass[aspect]}`}
-        >
-          <Image
+        <div className={`angle-popular-card relative overflow-hidden ${aspectClass[aspect]}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={pose.imageUrl}
             alt={pose.title}
-            fill
-            className="object-cover transition-transform duration-500 group-active:scale-[1.03]"
-            sizes="50vw"
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
+            fetchPriority={priority ? "high" : "auto"}
+            className="absolute inset-0 h-full w-full object-cover"
             draggable={false}
             onContextMenu={(e) => e.preventDefault()}
           />
@@ -57,36 +93,9 @@ export function PoseCard({ pose, index = 0, aspect = "medium" }: PoseCardProps) 
           <div className="absolute bottom-0 left-0 right-0 p-3">
             <p className="text-sm font-bold text-white drop-shadow">{pose.title}</p>
           </div>
-
-          <div className="absolute right-2 top-2 flex gap-1.5">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                toggleStar(pose.id);
-              }}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm transition-transform active:scale-90"
-              aria-label="В избранное"
-            >
-              <Heart
-                size={15}
-                className={isStarred ? "fill-[#ff6b7a] text-[#ff6b7a]" : "text-white"}
-              />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                void sharePose();
-              }}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm transition-transform active:scale-90"
-              aria-label="Поделиться"
-            >
-              <Share2 size={15} className="text-white" />
-            </button>
-          </div>
+          <PoseCardActions poseId={pose.id} title={pose.title} />
         </div>
       </Link>
-    </motion.div>
+    </article>
   );
-}
+});

@@ -7,6 +7,7 @@ import { useFilterStore } from "@/stores/useFilterStore";
 
 type SearchBarProps = {
   autoFocus?: boolean;
+  compact?: boolean;
   onFilterClick?: () => void;
   onSubmit?: () => void;
   activeFilterCount?: number;
@@ -14,6 +15,7 @@ type SearchBarProps = {
 
 export function SearchBar({
   autoFocus,
+  compact,
   onFilterClick,
   onSubmit,
   activeFilterCount = 0,
@@ -31,9 +33,17 @@ export function SearchBar({
   };
 
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="angle-search-pill flex flex-1 items-center gap-2.5 px-4">
-        <SearchIcon size={17} className="shrink-0 text-white/65" strokeWidth={2.2} />
+    <div className={`flex items-center ${compact ? "gap-2" : "gap-2.5"}`}>
+      <div
+        className={`angle-search-pill flex flex-1 items-center ${
+          compact ? "min-h-10 gap-2 px-3" : "min-h-12 gap-2.5 px-4"
+        }`}
+      >
+        <SearchIcon
+          size={compact ? 15 : 17}
+          className="shrink-0 text-white/65"
+          strokeWidth={2.2}
+        />
         <input
           type="search"
           value={filters.query}
@@ -49,18 +59,24 @@ export function SearchBar({
             }
           }}
           placeholder="Поиск поз и идей"
-          className="w-full bg-transparent py-3 text-[15px] text-white outline-none placeholder:text-white/45"
+          className={`w-full bg-transparent text-white outline-none placeholder:text-white/45 ${
+            compact ? "py-2 text-[14px]" : "py-3 text-[15px]"
+          }`}
         />
       </div>
       <button
         type="button"
         onClick={openFilters}
         className={`angle-search-filter relative flex shrink-0 items-center justify-center ${
-          activeFilterCount > 0 ? "angle-search-filter-active" : ""
-        }`}
+          compact ? "h-10 w-10" : "h-12 w-12"
+        } ${activeFilterCount > 0 ? "angle-search-filter-active" : ""}`}
         aria-label="Фильтры"
       >
-        <SlidersHorizontal size={18} className="text-white/90" strokeWidth={2.2} />
+        <SlidersHorizontal
+          size={compact ? 16 : 18}
+          className="text-white/90"
+          strokeWidth={2.2}
+        />
         {activeFilterCount > 0 ? (
           <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold leading-none text-[#3d2e24]">
             {activeFilterCount}

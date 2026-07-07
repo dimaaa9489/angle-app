@@ -4,18 +4,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth, getGreeting } from "@/components/AuthProvider";
-import { PoseMasonryGrid } from "@/components/PoseMasonryGrid";
+import { PoseFeedGrid } from "@/components/PoseFeedGrid";
 import { SearchBar } from "@/components/SearchBar";
+import { useHomeHeaderScroll } from "@/hooks/useHomeHeaderScroll";
 import { fetchPosesPage } from "@/lib/poses";
 import type { Pose } from "@/lib/types";
 import { useFilterStore } from "@/stores/useFilterStore";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 10;
 
 export function HomeContent() {
   const { firstName } = useAuth();
   const router = useRouter();
   const query = useFilterStore((s) => s.filters.query);
+  const headerRef = useRef<HTMLDivElement>(null);
+  useHomeHeaderScroll(headerRef);
 
   const [poses, setPoses] = useState<Pose[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +28,8 @@ export function HomeContent() {
   const hasMoreRef = useRef(true);
   const loadingMoreRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const scrollingRef = useRef(false);
+  const scrollIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const openSearch = () => {
     const nextQuery = query.trim();
@@ -35,7 +40,7 @@ export function HomeContent() {
   };
 
   const loadMore = useCallback(async () => {
-    if (loadingMoreRef.current || !hasMoreRef.current) return;
+    if (loadingMoreRef.current || !hasMoreRef.current || scrollingRef.current) return;
 
     loadingMoreRef.current = true;
     setLoadingMore(true);
@@ -66,16 +71,36 @@ export function HomeContent() {
   }, [loadMore]);
 
   useEffect(() => {
+    const scrollEl = document.querySelector<HTMLElement>(".angle-scroll");
+    if (!scrollEl) return;
+
+    const onScroll = () => {
+      scrollingRef.current = true;
+      if (scrollIdleRef.current) clearTimeout(scrollIdleRef.current);
+      scrollIdleRef.current = setTimeout(() => {
+        scrollingRef.current = false;
+      }, 120);
+    };
+
+    scrollEl.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      scrollEl.removeEventListener("scroll", onScroll);
+      if (scrollIdleRef.current) clearTimeout(scrollIdleRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     const node = sentinelRef.current;
-    if (!node || !hasMore) return;
+    const root = document.querySelector<HTMLElement>(".angle-scroll");
+    if (!node || !root || !hasMore) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) {
+        if (entries[0]?.isIntersecting && !scrollingRef.current) {
           void loadMore();
         }
       },
-      { rootMargin: "280px 0px" }
+      { root, rootMargin: "240px 0px", threshold: 0 }
     );
 
     observer.observe(node);
@@ -84,28 +109,32 @@ export function HomeContent() {
 
   return (
     <>
-      <div className="angle-home-header sticky top-0 z-10 -mx-4 mb-4 border-b border-white/10 bg-[#4a382c]/82 px-4 pb-4 pt-1 backdrop-blur-xl">
-        <p className="mb-1 text-[14px] font-medium text-white/85">
-          {getGreeting(firstName)}
-        </p>
-        <h1 className="mb-4 text-[22px] font-bold leading-[1.2] text-white">
-          Что сегодня будем
-          <br />
-          фотографировать?
-        </h1>
+      <div
+        ref={headerRef}
+        className="angle-home-header-wrap angle-home-header-visible sticky top-0 z-20 -mx-4 -mt-[calc(1rem+max(12px,env(safe-area-inset-top)))]"
+      >
+        <div className="angle-home-header border-b border-white/10 bg-[#4a382c] px-4 pb-3 pt-[max(10px,env(safe-area-inset-top))]">
+          <p className="mb-0.5 text-[13px] font-medium text-white/80">
+            {getGreeting(firstName)}
+          </p>
+          <h1 className="mb-2.5 text-[18px] font-bold leading-tight text-white">
+            Что сегодня будем фотографировать?
+          </h1>
 
-        <SearchBar
-          onFilterClick={() => router.push("/search?filters=open")}
-          onSubmit={openSearch}
-        />
+          <SearchBar
+            compact
+            onFilterClick={() => router.push("/search?filters=open")}
+            onSubmit={openSearch}
+          />
+        </div>
       </div>
 
       {loading && poses.length === 0 ? (
         <div className="py-10 text-center text-sm text-white/55">Загружаем ленту…</div>
       ) : (
         <>
-          <PoseMasonryGrid poses={poses} />
-          <div ref={sentinelRef} className="h-10" aria-hidden />
+          <PoseFeedGrid poses={poses} />
+          <div ref={sentinelRef} className="h-8" aria-hidden />
           {loadingMore ? (
             <p className="pb-6 text-center text-sm text-white/50">Загружаем ещё…</p>
           ) : null}
