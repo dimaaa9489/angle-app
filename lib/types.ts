@@ -1,17 +1,39 @@
-export type PoseCategory = "women" | "men" | "couples" | "family";
-export type ShotType = "portrait" | "full-body" | "half-body" | "sitting" | "lying";
+export type PoseCategory = "women" | "men" | "couples" | "family" | "kids" | "group";
+export type ShotType =
+  | "portrait"
+  | "full-body"
+  | "half-body"
+  | "sitting"
+  | "lying"
+  | "close-up"
+  | "profile";
 export type PeopleCount = "1" | "2" | "3+";
 export type LocationTag =
-  | "street"
   | "studio"
-  | "bar"
+  | "street"
+  | "urban"
+  | "park"
+  | "forest"
+  | "beach"
+  | "nature"
+  | "home"
+  | "loft"
+  | "hotel"
   | "cafe"
   | "restaurant"
-  | "park"
-  | "beach"
-  | "home"
+  | "bar"
   | "office"
-  | "nature";
+  | "rooftop"
+  | "balcony"
+  | "garden"
+  | "pool"
+  | "lake"
+  | "mountains"
+  | "museum"
+  | "gym"
+  | "night-city"
+  | "countryside"
+  | "subway";
 export type SessionType =
   | "portrait"
   | "love"
@@ -21,7 +43,12 @@ export type SessionType =
   | "wedding"
   | "maternity"
   | "business"
-  | "creative";
+  | "creative"
+  | "boudoir"
+  | "newborn"
+  | "event"
+  | "graduation"
+  | "kids";
 export type StyleTag =
   | "candid"
   | "editorial"
@@ -30,7 +57,21 @@ export type StyleTag =
   | "vintage"
   | "dramatic"
   | "soft"
-  | "dynamic";
+  | "dynamic"
+  | "natural-light"
+  | "high-key"
+  | "low-key"
+  | "film"
+  | "boho"
+  | "elegant"
+  | "lifestyle"
+  | "moody"
+  | "romantic"
+  | "commercial"
+  | "bright"
+  | "dark"
+  | "sporty"
+  | "gritty";
 
 export type Pose = {
   id: string;
@@ -69,6 +110,8 @@ export type PoseFilters = {
   styles: StyleTag[];
   categories: PoseCategory[];
 };
+
+export type PoseFilterSelection = Omit<PoseFilters, "query">;
 
 export type AppTheme = "light" | "dark" | "system";
 export type AppLanguage = "ru" | "en" | "uk";

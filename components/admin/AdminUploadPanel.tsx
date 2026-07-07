@@ -1,35 +1,20 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import Image from "next/image";
 import { ImagePlus, Loader2, Upload, X } from "lucide-react";
 
+import { FilterChipGroups } from "@/components/FilterChipGroups";
 import { adminFetch, adminUploadFile } from "@/lib/admin-api";
-import {
-  FILTER_CATEGORIES,
-  FILTER_LOCATIONS,
-  FILTER_PEOPLE,
-  FILTER_SESSION_TYPES,
-  FILTER_SHOT_TYPES,
-  FILTER_STYLES,
-} from "@/lib/filters";
-import { formatHashtagPreview, parseHashtags } from "@/lib/hashtags";
-import type {
-  LocationTag,
-  PeopleCount,
-  Pose,
-  PoseCategory,
-  SessionType,
-  ShotType,
-  StyleTag,
-} from "@/lib/types";
+import { EMPTY_FILTER_SELECTION } from "@/lib/filters";
+import { selectionToPosePayload } from "@/lib/pose-publish";
+import type { Pose, PoseFilterSelection } from "@/lib/types";
 
 type QueueItem = {
   id: string;
   file: File;
   preview: string;
   title: string;
-  hashtags: string;
   status: "pending" | "uploading" | "done" | "error";
   error?: string;
 };
@@ -48,21 +33,10 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
-
-  const [category, setCategory] = useState<PoseCategory>("women");
-  const [shotType, setShotType] = useState<ShotType>("portrait");
-  const [locations, setLocations] = useState<LocationTag[]>([]);
-  const [peopleCount, setPeopleCount] = useState<PeopleCount[]>(["1"]);
-  const [sessionTypes, setSessionTypes] = useState<SessionType[]>(["portrait"]);
-  const [styles, setStyles] = useState<StyleTag[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<PoseFilterSelection>(EMPTY_FILTER_SELECTION);
 
   const activeItem = queue.find((item) => item.id === activeId) ?? queue[0] ?? null;
   const pendingCount = queue.filter((item) => item.status === "pending").length;
-  const parsedTags = useMemo(
-    () => parseHashtags(activeItem?.hashtags ?? ""),
-    [activeItem?.hashtags]
-  );
 
   const addFiles = useCallback((files: FileList | File[]) => {
     const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
@@ -73,7 +47,6 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
       file,
       preview: URL.createObjectURL(file),
       title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
-      hashtags: "",
       status: "pending" as const,
     }));
 
@@ -96,10 +69,6 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
     });
   };
 
-  const toggle = <T,>(list: T[], value: T, set: (v: T[]) => void) => {
-    set(list.includes(value) ? list.filter((x) => x !== value) : [...list, value]);
-  };
-
   const publishQueue = async () => {
     const pending = queue.filter((item) => item.status === "pending");
     if (!pending.length) return;
@@ -111,9 +80,8 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
     for (const item of pending) {
       updateItem(item.id, { status: "uploading", error: undefined });
       try {
-        const keywords = parseHashtags(item.hashtags);
         const title = item.title.trim() || item.file.name;
-
+        const payload = selectionToPosePayload(filters, title);
         const { publicUrl, key } = await adminUploadFile(item.file);
 
         const { pose } = await adminFetch("/api/poses", {
@@ -121,14 +89,7 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
           body: JSON.stringify({
             imageUrl: publicUrl,
             imageKey: key,
-            title,
-            keywords,
-            category,
-            shotType,
-            locations,
-            peopleCount,
-            sessionTypes,
-            styles,
+            ...payload,
           }),
         });
 
@@ -153,9 +114,7 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-white">Загрузка поз</h2>
-          <p className="mt-1 text-sm text-white/50">
-            Фото → сервер Vercel → R2 → Supabase → сразу в ленте
-          </p>
+          <p className="mt-1 text-sm text-white/50">Название + фильтры → сразу в ленте</p>
         </div>
         {pendingCount > 0 ? (
           <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
@@ -175,15 +134,14 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
           setDragOver(false);
           if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
         }}
-        className={`mb-4 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-8 text-center transition ${
+        className={`mb-4 flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 text-center transition ${
           dragOver
             ? "border-[#B8956B] bg-[#B8956B]/10"
             : "border-white/15 bg-white/5 hover:border-white/25"
         }`}
       >
         <ImagePlus className="mb-2 text-white/60" size={28} />
-        <p className="text-sm font-semibold text-white">Перетащи фото сюда или нажми для выбора</p>
-        <p className="mt-1 text-xs text-white/45">Можно выбрать несколько файлов сразу</p>
+        <p className="text-sm font-semibold text-white">Перетащи фото или выбери файлы</p>
         <input
           type="file"
           accept="image/*"
@@ -213,12 +171,8 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
                   <Loader2 className="animate-spin text-white" size={16} />
                 </span>
               ) : null}
-              {item.status === "done" ? (
-                <span className="absolute inset-0 bg-emerald-500/40" />
-              ) : null}
-              {item.status === "error" ? (
-                <span className="absolute inset-0 bg-red-500/40" />
-              ) : null}
+              {item.status === "done" ? <span className="absolute inset-0 bg-emerald-500/40" /> : null}
+              {item.status === "error" ? <span className="absolute inset-0 bg-red-500/40" /> : null}
               <button
                 type="button"
                 onClick={(e) => {
@@ -235,8 +189,8 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
       ) : null}
 
       {activeItem ? (
-        <div className="space-y-3">
-          <div className="relative mb-2 h-56 overflow-hidden rounded-2xl">
+        <div className="space-y-4">
+          <div className="relative h-48 overflow-hidden rounded-2xl">
             <Image src={activeItem.preview} alt="preview" fill className="object-contain bg-black/30" />
           </div>
 
@@ -247,88 +201,16 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
             className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35"
           />
 
-          <div>
-            <input
-              value={activeItem.hashtags}
-              onChange={(e) => updateItem(activeItem.id, { hashtags: e.target.value })}
-              placeholder="Хештеги: #портрет #студия #мягкий-свет"
-              className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35"
-            />
-            {parsedTags.length > 0 ? (
-              <p className="mt-1.5 text-xs text-white/45">{formatHashtagPreview(parsedTags)}</p>
-            ) : null}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as PoseCategory)}
-              className="rounded-xl border border-white/10 bg-black/20 px-2 py-2 text-sm text-white"
-            >
-              {FILTER_CATEGORIES.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={shotType}
-              onChange={(e) => setShotType(e.target.value as ShotType)}
-              className="rounded-xl border border-white/10 bg-black/20 px-2 py-2 text-sm text-white"
-            >
-              {FILTER_SHOT_TYPES.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowFilters((v) => !v)}
-            className="text-xs font-semibold text-[#B8956B]"
-          >
-            {showFilters ? "Скрыть фильтры" : "Теги для поиска (локация, стиль…)"}
-          </button>
-
-          {showFilters ? (
-            <div className="space-y-3 rounded-xl border border-white/10 bg-black/10 p-3">
-              <ChipGroup
-                title="Локация"
-                items={FILTER_LOCATIONS}
-                selected={locations}
-                onToggle={(id) => toggle(locations, id, setLocations)}
-              />
-              <ChipGroup
-                title="Люди"
-                items={FILTER_PEOPLE}
-                selected={peopleCount}
-                onToggle={(id) => toggle(peopleCount, id, setPeopleCount)}
-              />
-              <ChipGroup
-                title="Тип сессии"
-                items={FILTER_SESSION_TYPES}
-                selected={sessionTypes}
-                onToggle={(id) => toggle(sessionTypes, id, setSessionTypes)}
-              />
-              <ChipGroup
-                title="Стиль"
-                items={FILTER_STYLES}
-                selected={styles}
-                onToggle={(id) => toggle(styles, id, setStyles)}
-              />
-              <p className="text-[11px] text-white/40">
-                Эти теги применяются ко всей очереди. Хештеги — у каждого фото отдельно.
-              </p>
-            </div>
-          ) : null}
-
-          {activeItem.error ? (
-            <p className="text-sm text-red-300">{activeItem.error}</p>
-          ) : null}
+          {activeItem.error ? <p className="text-sm text-red-300">{activeItem.error}</p> : null}
         </div>
       ) : null}
+
+      <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-3">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/45">
+          Фильтры для всей очереди
+        </p>
+        <FilterChipGroups variant="admin" selection={filters} onChange={setFilters} />
+      </div>
 
       <button
         type="button"
@@ -341,40 +223,6 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
       </button>
 
       {message ? <p className="mt-3 text-sm font-medium text-emerald-200/90">{message}</p> : null}
-    </div>
-  );
-}
-
-function ChipGroup<T extends string>({
-  title,
-  items,
-  selected,
-  onToggle,
-}: {
-  title: string;
-  items: { id: T; label: string }[];
-  selected: T[];
-  onToggle: (id: T) => void;
-}) {
-  return (
-    <div>
-      <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-white/45">{title}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {items.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onToggle(item.id)}
-            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
-              selected.includes(item.id)
-                ? "border-[#B8956B] bg-[#B8956B]/20 text-white"
-                : "border-white/15 text-white/70"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

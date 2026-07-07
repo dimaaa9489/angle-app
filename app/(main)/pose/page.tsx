@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Check, FolderPlus, Heart, MapPin, Share2, Sparkles, Users } from "lucide-react";
 
 import { GlassCard } from "@/components/GlassCard";
+import { getFilterLabel } from "@/lib/filters";
 import { fetchPoseById } from "@/lib/poses";
 import type { Pose } from "@/lib/types";
 import { SAVED_FOLDER_ID, useFavoritesStore } from "@/stores/useFavoritesStore";
@@ -58,19 +59,19 @@ function PoseDetailInner() {
   };
 
   const infoChips = [
-    ...pose.locations.slice(0, 2).map((item) => ({
+    ...pose.locations.slice(0, 3).map((item) => ({
       key: `loc-${item}`,
-      label: item,
+      label: getFilterLabel(item),
       icon: MapPin,
     })),
     ...pose.peopleCount.slice(0, 1).map((item) => ({
       key: `people-${item}`,
-      label: item === "1" ? "1 человек" : item === "2" ? "2 человека" : "3+ человек",
+      label: getFilterLabel(item),
       icon: Users,
     })),
-    ...pose.styles.slice(0, 2).map((item) => ({
+    ...pose.styles.slice(0, 3).map((item) => ({
       key: `style-${item}`,
-      label: item,
+      label: getFilterLabel(item),
       icon: Sparkles,
     })),
   ];

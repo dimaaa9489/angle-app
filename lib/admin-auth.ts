@@ -1,18 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
-export function getAdminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
+import { isAdminEmail } from "@/lib/admin-emails";
 
-export function isAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const admins = getAdminEmails();
-  if (!admins.length) return false;
-  return admins.includes(email.toLowerCase());
-}
+export { getAdminEmails, getAdminEmailsStatus, isAdminEmail } from "@/lib/admin-emails";
 
 export async function getUserFromRequest(request: Request) {
   const auth = request.headers.get("authorization");
