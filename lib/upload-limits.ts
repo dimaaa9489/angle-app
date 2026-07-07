@@ -7,7 +7,8 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/heif",
 ]);
 
-export const MAX_POSE_IMAGE_SIZE = 8 * 1024 * 1024;
+/** Vercel serverless body limit is ~4.5 MB — client normalizes to JPEG before upload */
+export const MAX_POSE_IMAGE_SIZE = 4.5 * 1024 * 1024;
 
 export function validatePoseImage(file: File): { ok: true } | { ok: false; error: string } {
   if (!file.type.startsWith("image/") && !ALLOWED_IMAGE_TYPES.has(file.type)) {
@@ -18,7 +19,10 @@ export function validatePoseImage(file: File): { ok: true } | { ok: false; error
   }
 
   if (file.size > MAX_POSE_IMAGE_SIZE) {
-    return { ok: false, error: "Файл больше 8 МБ — сожми фото и попробуй снова" };
+    return {
+      ok: false,
+      error: "Файл больше 4.5 МБ — перезагрузи страницу и попробуй снова (фото сожмутся автоматически)",
+    };
   }
 
   return { ok: true };

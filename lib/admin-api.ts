@@ -1,3 +1,4 @@
+import { normalizeUploadFile } from "@/lib/admin-upload-utils";
 import { supabase } from "@/lib/supabase";
 
 export async function getAccessToken(): Promise<string | null> {
@@ -35,8 +36,9 @@ export async function adminUploadFile(file: File) {
   const token = await getAccessToken();
   if (!token) throw new Error("Войдите через Google");
 
+  const normalized = await normalizeUploadFile(file);
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", normalized);
 
   let response: Response;
   try {

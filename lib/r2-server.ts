@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -17,8 +19,15 @@ export function getR2Client() {
   return client;
 }
 
+function r2PublicUrl(publicBase: string, key: string) {
+  const encodedKey = key.split("/").map(encodeURIComponent).join("/");
+  return `${publicBase}/${encodedKey}`;
+}
+
 export function sanitizeR2Key(filename: string) {
-  return `poses/${Date.now()}-${filename.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+  const ext = (filename.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const prefix = (process.env.R2_KEY_PREFIX ?? "poses").replace(/^\/+|\/+$/g, "");
+  return `${prefix}/${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`;
 }
 
 export async function createPresignedUploadUrl(filename: string, contentType: string) {
@@ -30,7 +39,7 @@ export async function createPresignedUploadUrl(filename: string, contentType: st
     ContentType: contentType,
   });
   const uploadUrl = await getSignedUrl(getR2Client(), command, { expiresIn: 3600 });
-  return { uploadUrl, publicUrl: `${publicUrl}/${key}`, key };
+  return { uploadUrl, publicUrl: r2PublicUrl(publicUrl, key), key };
 }
 
 export async function uploadBufferToR2(
@@ -47,8 +56,9 @@ export async function uploadBufferToR2(
       Key: key,
       Body: buffer,
       ContentType: contentType,
+      CacheControl: "public, max-age=31536000, immutable",
     })
   );
 
-  return { publicUrl: `${publicUrl}/${key}`, key };
+  return { publicUrl: r2PublicUrl(publicUrl, key), key };
 }

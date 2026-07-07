@@ -6,7 +6,11 @@ import { ImagePlus, Loader2, Upload } from "lucide-react";
 import { AdminQueueSection, type QueueItem } from "@/components/admin/AdminQueueSection";
 import { AdminUploadFilters } from "@/components/admin/AdminUploadFilters";
 import { adminFetch, adminUploadFile } from "@/lib/admin-api";
-import { applyBulkRenameTemplate, createImageThumbnail } from "@/lib/admin-upload-utils";
+import {
+  applyBulkRenameTemplate,
+  createImageThumbnail,
+  isImageFile,
+} from "@/lib/admin-upload-utils";
 import { EMPTY_FILTER_SELECTION } from "@/lib/filters";
 import { selectionToPosePayload } from "@/lib/pose-publish";
 import type { Pose, PoseFilterSelection } from "@/lib/types";
@@ -30,8 +34,11 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
   const pendingCount = queue.filter((item) => item.status === "pending").length;
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
-    const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
-    if (!imageFiles.length) return;
+    const imageFiles = Array.from(files).filter(isImageFile);
+    if (!imageFiles.length) {
+      setMessage("Не найдено изображений (поддерживаются JPG, PNG, WebP…)");
+      return;
+    }
 
     const nextItems: QueueItem[] = await Promise.all(
       imageFiles.map(async (file) => ({
