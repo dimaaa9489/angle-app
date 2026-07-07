@@ -3,6 +3,7 @@
 import { memo } from "react";
 import Link from "next/link";
 
+import { getFeedImageSrc } from "@/lib/feed-image";
 import type { Pose } from "@/lib/types";
 
 type PoseFeedCardProps = {
@@ -14,15 +15,17 @@ export const PoseFeedCard = memo(function PoseFeedCard({
   pose,
   priority = false,
 }: PoseFeedCardProps) {
+  const src = getFeedImageSrc(pose.imageUrl);
+
   return (
     <Link href={`/pose?id=${pose.id}`} className="block">
-      <div className="angle-popular-card relative h-[220px] overflow-hidden">
+      <div className="angle-popular-card relative h-[220px] overflow-hidden bg-[#3d2e24]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={pose.imageUrl}
+          src={src}
           alt={pose.title}
-          width={400}
-          height={440}
+          width={420}
+          height={462}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
           fetchPriority={priority ? "high" : "low"}

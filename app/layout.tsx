@@ -35,8 +35,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const r2Origin = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
+
   return (
     <html lang="ru" className={`${geistSans.variable} h-full`}>
+      <head>
+        {r2Origin ? <link rel="preconnect" href={r2Origin} /> : null}
+        {r2Origin ? <link rel="dns-prefetch" href={r2Origin} /> : null}
+      </head>
       <body className="min-h-full antialiased">
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>

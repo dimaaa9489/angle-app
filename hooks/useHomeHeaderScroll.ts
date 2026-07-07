@@ -2,21 +2,12 @@
 
 import { useEffect, type RefObject } from "react";
 
-const TOP_THRESHOLD = 4;
+const TOP_THRESHOLD = 8;
 
 export function useHomeHeaderScroll(headerRef: RefObject<HTMLElement | null>) {
   useEffect(() => {
-    const scrollEl = document.querySelector<HTMLElement>(".angle-scroll");
     const header = headerRef.current;
-    if (!scrollEl || !header) return;
-
-    const syncHeight = () => {
-      header.style.setProperty("--home-header-h", `${header.offsetHeight}px`);
-    };
-
-    syncHeight();
-    const resizeObserver = new ResizeObserver(syncHeight);
-    resizeObserver.observe(header);
+    if (!header) return;
 
     let visible = true;
     const apply = (atTop: boolean) => {
@@ -27,16 +18,13 @@ export function useHomeHeaderScroll(headerRef: RefObject<HTMLElement | null>) {
     };
 
     const onScroll = () => {
-      apply(scrollEl.scrollTop <= TOP_THRESHOLD);
+      apply(window.scrollY <= TOP_THRESHOLD);
     };
 
     header.classList.add("angle-home-header-visible");
     onScroll();
-    scrollEl.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
 
-    return () => {
-      scrollEl.removeEventListener("scroll", onScroll);
-      resizeObserver.disconnect();
-    };
+    return () => window.removeEventListener("scroll", onScroll);
   }, [headerRef]);
 }

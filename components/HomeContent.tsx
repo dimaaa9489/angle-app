@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth, getGreeting } from "@/components/AuthProvider";
@@ -11,7 +11,39 @@ import { fetchPosesPage } from "@/lib/poses";
 import type { Pose } from "@/lib/types";
 import { useFilterStore } from "@/stores/useFilterStore";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
+const HEADER_SPACER = 118;
+
+const HomeFeed = memo(function HomeFeed({
+  poses,
+  loading,
+  loadingMore,
+  hasMore,
+  sentinelRef,
+}: {
+  poses: Pose[];
+  loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  sentinelRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  if (loading && poses.length === 0) {
+    return <div className="py-10 text-center text-sm text-white/55">Загружаем ленту…</div>;
+  }
+
+  return (
+    <>
+      <PoseFeedGrid poses={poses} />
+      <div ref={sentinelRef} className="h-6" aria-hidden />
+      {loadingMore ? (
+        <p className="pb-6 text-center text-sm text-white/50">Загружаем ещё…</p>
+      ) : null}
+      {!hasMore && poses.length > 0 ? (
+        <p className="pb-8 text-center text-xs text-white/35">Вы посмотрели всё</p>
+      ) : null}
+    </>
+  );
+});
 
 export function HomeContent() {
   const { firstName } = useAuth();
@@ -28,19 +60,17 @@ export function HomeContent() {
   const hasMoreRef = useRef(true);
   const loadingMoreRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const scrollingRef = useRef(false);
-  const scrollIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const openSearch = () => {
+  const openSearch = useCallback(() => {
     const nextQuery = query.trim();
     const href = nextQuery
       ? `/search?q=${encodeURIComponent(nextQuery)}`
       : "/search";
     router.push(href);
-  };
+  }, [query, router]);
 
   const loadMore = useCallback(async () => {
-    if (loadingMoreRef.current || !hasMoreRef.current || scrollingRef.current) return;
+    if (loadingMoreRef.current || !hasMoreRef.current) return;
 
     loadingMoreRef.current = true;
     setLoadingMore(true);
@@ -71,36 +101,16 @@ export function HomeContent() {
   }, [loadMore]);
 
   useEffect(() => {
-    const scrollEl = document.querySelector<HTMLElement>(".angle-scroll");
-    if (!scrollEl) return;
-
-    const onScroll = () => {
-      scrollingRef.current = true;
-      if (scrollIdleRef.current) clearTimeout(scrollIdleRef.current);
-      scrollIdleRef.current = setTimeout(() => {
-        scrollingRef.current = false;
-      }, 120);
-    };
-
-    scrollEl.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      scrollEl.removeEventListener("scroll", onScroll);
-      if (scrollIdleRef.current) clearTimeout(scrollIdleRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
     const node = sentinelRef.current;
-    const root = document.querySelector<HTMLElement>(".angle-scroll");
-    if (!node || !root || !hasMore) return;
+    if (!node || !hasMore) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting && !scrollingRef.current) {
+        if (entries[0]?.isIntersecting) {
           void loadMore();
         }
       },
-      { root, rootMargin: "240px 0px", threshold: 0 }
+      { rootMargin: "320px 0px", threshold: 0 }
     );
 
     observer.observe(node);
@@ -109,9 +119,11 @@ export function HomeContent() {
 
   return (
     <>
+      <div aria-hidden style={{ height: HEADER_SPACER }} />
+
       <div
         ref={headerRef}
-        className="angle-home-header-wrap angle-home-header-visible sticky top-0 z-20 -mx-4 -mt-[calc(1rem+max(12px,env(safe-area-inset-top)))]"
+        className="angle-home-header-bar angle-home-header-visible fixed inset-x-0 top-0 z-30 mx-auto w-full max-w-lg px-4"
       >
         <div className="angle-home-header border-b border-white/10 bg-[#4a382c] px-4 pb-3 pt-[max(10px,env(safe-area-inset-top))]">
           <p className="mb-0.5 text-[13px] font-medium text-white/80">
@@ -129,20 +141,13 @@ export function HomeContent() {
         </div>
       </div>
 
-      {loading && poses.length === 0 ? (
-        <div className="py-10 text-center text-sm text-white/55">Загружаем ленту…</div>
-      ) : (
-        <>
-          <PoseFeedGrid poses={poses} />
-          <div ref={sentinelRef} className="h-8" aria-hidden />
-          {loadingMore ? (
-            <p className="pb-6 text-center text-sm text-white/50">Загружаем ещё…</p>
-          ) : null}
-          {!hasMore && poses.length > 0 ? (
-            <p className="pb-8 text-center text-xs text-white/35">Вы посмотрели всё</p>
-          ) : null}
-        </>
-      )}
+      <HomeFeed
+        poses={poses}
+        loading={loading}
+        loadingMore={loadingMore}
+        hasMore={hasMore}
+        sentinelRef={sentinelRef}
+      />
     </>
   );
 }

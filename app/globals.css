@@ -26,9 +26,7 @@ body {
 
 .angle-app-root {
   position: relative;
-  height: 100dvh;
-  height: 100svh;
-  overflow: hidden;
+  min-height: 100dvh;
   background: #4a382c;
 }
 
@@ -38,8 +36,7 @@ body {
   z-index: 0;
   background-size: cover;
   background-position: center;
-  transform: scale(1.06);
-  filter: blur(10px) saturate(1.05);
+  pointer-events: none;
 }
 
 @media (min-width: 768px) {
@@ -55,27 +52,27 @@ body {
   z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 50% 15%, rgba(255, 220, 180, 0.2), transparent 50%),
-    linear-gradient(180deg, rgba(50, 38, 30, 0.1), rgba(25, 18, 14, 0.5));
+    radial-gradient(ellipse at 50% 15%, rgba(255, 220, 180, 0.16), transparent 50%),
+    linear-gradient(180deg, rgba(50, 38, 30, 0.08), rgba(25, 18, 14, 0.45));
 }
 
-.angle-page {
+.angle-content {
   position: relative;
   z-index: 2;
-  display: flex;
-  height: 100%;
-  min-height: 0;
-  flex-direction: column;
 }
 
-.angle-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
-  overflow-anchor: none;
+.angle-bottom-nav-shell {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.angle-bottom-nav-shell .angle-bottom-nav {
+  pointer-events: auto;
+  margin-inline: auto;
+  max-width: 32rem;
 }
 
 .angle-home-panel {
@@ -120,20 +117,17 @@ body {
   contain: layout style;
 }
 
-.angle-home-header-wrap {
-  contain: layout style paint;
-  will-change: transform;
+.angle-home-header-bar {
+  transition: opacity 0.15s ease;
 }
 
 .angle-home-header-hidden {
-  transform: translate3d(0, -100%, 0);
-  margin-bottom: calc(-1 * var(--home-header-h, 132px));
+  opacity: 0;
   pointer-events: none;
 }
 
 .angle-home-header-visible {
-  transform: translate3d(0, 0, 0);
-  margin-bottom: 0;
+  opacity: 1;
 }
 
 .angle-search-filter {
