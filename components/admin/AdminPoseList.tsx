@@ -15,6 +15,7 @@ type AdminPoseListProps = {
 export function AdminPoseList({ refreshKey = 0 }: AdminPoseListProps) {
   const [poses, setPoses] = useState<Pose[]>([]);
   const [loading, setLoading] = useState(true);
+  const [repairing, setRepairing] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -62,6 +63,20 @@ export function AdminPoseList({ refreshKey = 0 }: AdminPoseListProps) {
     }
   };
 
+  const repairImages = async () => {
+    setRepairing(true);
+    setError("");
+    try {
+      const data = await adminFetch("/api/admin/repair-images", { method: "POST" });
+      await reload();
+      alert(`Починено ссылок: ${data.repaired ?? 0}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось починить ссылки");
+    } finally {
+      setRepairing(false);
+    }
+  };
+
   return (
     <div className="rounded-2xl border border-white/10 bg-[#2a211a]/80 p-5 backdrop-blur-xl">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -69,13 +84,23 @@ export function AdminPoseList({ refreshKey = 0 }: AdminPoseListProps) {
           <h2 className="text-xl font-bold text-white">Опубликованные позы</h2>
           <p className="mt-1 text-sm text-white/50">{poses.length} в базе</p>
         </div>
-        <button
-          type="button"
-          onClick={() => void reload()}
-          className="rounded-xl border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80"
-        >
-          Обновить
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={repairing}
+            onClick={() => void repairImages()}
+            className="rounded-xl border border-amber-400/30 px-3 py-1.5 text-xs font-semibold text-amber-100/90 disabled:opacity-50"
+          >
+            {repairing ? "Чиним…" : "Починить фото"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void reload()}
+            className="rounded-xl border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80"
+          >
+            Обновить
+          </button>
+        </div>
       </div>
 
       {loading ? (

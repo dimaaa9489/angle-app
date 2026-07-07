@@ -1,4 +1,5 @@
 import { MOCK_POSES } from "@/lib/mock-poses";
+import { resolvePoseImageUrl } from "@/lib/pose-image-url";
 import { supabase } from "@/lib/supabase";
 import type { Pose } from "@/lib/types";
 
@@ -13,10 +14,11 @@ function shouldUseMocks() {
 }
 
 function rowToPose(row: Record<string, unknown>): Pose {
+  const imageKey = row.image_key ? String(row.image_key) : undefined;
   return {
     id: String(row.id),
-    imageUrl: String(row.image_url),
-    imageKey: row.image_key ? String(row.image_key) : undefined,
+    imageUrl: resolvePoseImageUrl(String(row.image_url), imageKey),
+    imageKey,
     title: String(row.title ?? ""),
     keywords: Array.isArray(row.keywords) ? (row.keywords as string[]) : [],
     category: row.category as Pose["category"],

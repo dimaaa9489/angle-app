@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/admin-auth";
+import { resolvePoseImageUrl } from "@/lib/pose-image-url";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { Pose } from "@/lib/types";
 
 function rowToPose(row: Record<string, unknown>): Pose {
+  const imageKey = row.image_key ? String(row.image_key) : undefined;
   return {
     id: String(row.id),
-    imageUrl: String(row.image_url),
-    imageKey: row.image_key ? String(row.image_key) : undefined,
+    imageUrl: resolvePoseImageUrl(String(row.image_url), imageKey),
+    imageKey,
     title: String(row.title ?? ""),
     keywords: Array.isArray(row.keywords) ? (row.keywords as string[]) : [],
     category: row.category as Pose["category"],
