@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { resolveAppLanguage } from "@/lib/i18n/languages";
 import type { AppLanguage, AppTheme } from "@/lib/types";
 
 type SettingsState = {
@@ -20,6 +21,16 @@ export const useSettingsStore = create<SettingsState>()(
       setTheme: (theme) => set({ theme }),
       setLanguage: (language) => set({ language }),
     }),
-    { name: "angle-settings" }
+    {
+      name: "angle-settings",
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<SettingsState> | undefined;
+        return {
+          ...current,
+          ...saved,
+          language: resolveAppLanguage(saved?.language),
+        };
+      },
+    }
   )
 );

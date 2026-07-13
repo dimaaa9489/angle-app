@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 
 import { adminFetch } from "@/lib/admin-api";
+import { admin } from "@/components/admin/admin-ui";
 
 type AdminStatus = {
   ready: boolean;
   r2: { configured: boolean; missing: string[] };
   supabase: { url: boolean; anonKey: boolean; serviceRole: boolean };
   adminEmailsConfigured: boolean;
+  translation?: { configured: boolean; provider: string };
 };
 
 function isLocalHost() {
@@ -35,25 +37,45 @@ export function AdminConfigBanner() {
     };
   }, []);
 
-  if (!status || status.ready) return null;
+  if (!status) return null;
 
   const missing: string[] = [];
   if (!status.r2.configured) missing.push(...status.r2.missing);
   if (!status.supabase.serviceRole) missing.push("SUPABASE_SERVICE_ROLE_KEY");
 
+  const showUploadBlock = !status.ready;
+  const showTranslationHint = status.ready && !status.translation?.configured;
+
+  if (!showUploadBlock && !showTranslationHint) return null;
+
   return (
-    <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-      <p className="font-bold">Загрузка фото пока недоступна</p>
-      <p className="mt-1 text-amber-100/80">
-        {local
-          ? "Добавь в .env.local и перезапусти npm run dev:"
-          : "Добавь на Vercel (Environment Variables) и сделай Redeploy:"}
-      </p>
-      <ul className="mt-2 list-inside list-disc text-xs text-amber-100/70">
-        {missing.map((key) => (
-          <li key={key}>{key}</li>
-        ))}
-      </ul>
+    <div className="mb-6 space-y-3">
+      {showUploadBlock ? (
+        <div className={admin.warningBanner}>
+          <p className="font-bold">Загрузка фото пока недоступна</p>
+          <p className="mt-1 opacity-80">
+            {local
+              ? "Добавь в .env.local и перезапусти npm run dev:"
+              : "Добавь на Vercel (Environment Variables) и сделай Redeploy:"}
+          </p>
+          <ul className="mt-2 list-inside list-disc text-xs opacity-80">
+            {missing.map((key) => (
+              <li key={key}>{key}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {showTranslationHint ? (
+        <div className="rounded-[var(--radius-md)] border border-[#bfdbfe] bg-[#eff6ff] p-4 text-sm text-[#1e40af]">
+          <p className="font-bold">Поиск на всех языках: добавь DeepL API</p>
+          <p className="mt-1 opacity-90">
+            {local
+              ? "В .env.local: DEEPL_API_KEY=xxx:fx (бесплатный ключ с deepl.com/pro-api)"
+              : "На Vercel добавь DEEPL_API_KEY — названия переводятся в keywords при публикации."}
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }

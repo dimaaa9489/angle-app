@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 
 import { AuthProvider } from "@/components/AuthProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { LanguageProvider } from "@/components/LanguageProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,7 +28,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#E8DDD2",
+  themeColor: "#f8f8f8",
 };
 
 export default function RootLayout({
@@ -38,14 +39,16 @@ export default function RootLayout({
   const r2Origin = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
 
   return (
-    <html lang="ru" className={`${geistSans.variable} h-full`}>
+    <html lang="ru" className={`${geistSans.variable} h-full`} suppressHydrationWarning>
       <head>
         {r2Origin ? <link rel="preconnect" href={r2Origin} /> : null}
         {r2Origin ? <link rel="dns-prefetch" href={r2Origin} /> : null}
       </head>
       <body className="min-h-full antialiased">
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <LanguageProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </LanguageProvider>
         </ThemeProvider>
         <Analytics />
       </body>

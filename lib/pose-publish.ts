@@ -1,7 +1,10 @@
 import { getFilterLabel } from "@/lib/filters";
+import { buildMultilingualSearchKeywords } from "@/lib/pose-search";
+import { expandTextToSearchKeywords } from "@/lib/i18n/search-expansion";
 import type { PoseFilterSelection } from "@/lib/types";
 
 export function selectionToPosePayload(selection: PoseFilterSelection, title: string) {
+  const trimmedTitle = title.trim();
   const keywords = [
     ...selection.categories,
     ...selection.shotTypes,
@@ -9,11 +12,12 @@ export function selectionToPosePayload(selection: PoseFilterSelection, title: st
     ...selection.peopleCount,
     ...selection.sessionTypes,
     ...selection.styles,
-    ...title.split(/\s+/).filter(Boolean).map((word) => word.toLowerCase()),
+    ...buildMultilingualSearchKeywords(selection),
+    ...expandTextToSearchKeywords(trimmedTitle),
   ];
 
   return {
-    title: title.trim(),
+    title: trimmedTitle,
     keywords: Array.from(new Set(keywords)),
     category: selection.categories[0] ?? "women",
     shotType: selection.shotTypes[0] ?? "portrait",
@@ -24,7 +28,10 @@ export function selectionToPosePayload(selection: PoseFilterSelection, title: st
   };
 }
 
-export function selectionTagLabels(selection: PoseFilterSelection): string[] {
+export function selectionTagLabels(
+  selection: PoseFilterSelection,
+  lang: Parameters<typeof getFilterLabel>[1] = "ru"
+): string[] {
   return [
     ...selection.categories,
     ...selection.shotTypes,
@@ -32,5 +39,5 @@ export function selectionTagLabels(selection: PoseFilterSelection): string[] {
     ...selection.peopleCount,
     ...selection.sessionTypes,
     ...selection.styles,
-  ].map(getFilterLabel);
+  ].map((id) => getFilterLabel(id, lang));
 }

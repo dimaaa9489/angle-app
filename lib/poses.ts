@@ -1,4 +1,5 @@
 import { MOCK_POSES } from "@/lib/mock-poses";
+import { shufflePoses } from "@/lib/pose-feed-layout";
 import { resolvePoseImageUrl } from "@/lib/pose-image-url";
 import { supabase } from "@/lib/supabase";
 import type { Pose } from "@/lib/types";
@@ -92,6 +93,79 @@ function getMockPosesPage(offset: number, limit: number) {
   });
 
   return { poses, hasMore: offset + limit < 240 };
+}
+
+/** Random slice for the home feed — new mix on each page visit. */
+export async function fetchHomePosesPool(
+  limit: number,
+  excludeIds: ReadonlySet<string> = new Set()
+): Promise<{ poses: Pose[]; hasMore: boolean }> {
+  if (shouldUseMocks()) {
+    const pool = shufflePoses(MOCK_POSES).filter((pose) => !excludeIds.has(pose.id));
+    return {
+      poses: pool.slice(0, limit),
+      hasMore: pool.length > limit || MOCK_POSES.length > excludeIds.size + limit,
+    };
+  }
+
+  try {
+    const { count, error: countError } = await supabase
+      .from("poses")
+      .select("*", { count: "exact", head: true })
+      .eq("is_published", true);
+
+    if (countError) {
+      console.warn("[poses] home pool count failed:", countError.message);
+      return getMockHomePool(limit, excludeIds);
+    }
+
+    const total = count ?? 0;
+    if (total === 0) {
+      return { poses: [], hasMore: false };
+    }
+
+    const fetchSize = Math.min(Math.max(limit * 3, limit + 6), total);
+    const maxOffset = Math.max(0, total - fetchSize);
+    const randomOffset = Math.floor(Math.random() * (maxOffset + 1));
+
+    const { data, error } = await supabase
+      .from("poses")
+      .select("*")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false })
+      .range(randomOffset, randomOffset + fetchSize - 1);
+
+    if (error) {
+      console.warn("[poses] home pool failed:", error.message);
+      return getMockHomePool(limit, excludeIds);
+    }
+
+    const poses = shufflePoses(
+      (data ?? [])
+        .map((row) => rowToPose(row as Record<string, unknown>))
+        .filter((pose) => !excludeIds.has(pose.id))
+    ).slice(0, limit);
+
+    return {
+      poses,
+      hasMore: total > excludeIds.size + poses.length,
+    };
+  } catch (error) {
+    console.warn("[poses] home pool error:", error);
+    return getMockHomePool(limit, excludeIds);
+  }
+}
+
+function getMockHomePool(limit: number, excludeIds: ReadonlySet<string>) {
+  if (!shouldUseMocks()) {
+    return { poses: [], hasMore: false };
+  }
+
+  const pool = shufflePoses(MOCK_POSES).filter((pose) => !excludeIds.has(pose.id));
+  return {
+    poses: pool.slice(0, limit),
+    hasMore: pool.length > limit || MOCK_POSES.length > excludeIds.size + limit,
+  };
 }
 
 export async function fetchPoseById(id: string): Promise<Pose | null> {

@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { admin } from "@/components/admin/admin-ui";
 import { signInWithGoogle } from "@/lib/auth";
 import { getAccessToken } from "@/lib/admin-api";
 
@@ -59,7 +60,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
 
   if (gate.kind === "loading" || isLoading) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-sm text-white/60">
+      <div className={`${admin.card} p-8 text-center text-sm text-[#6b6b6b]`}>
         Проверка доступа…
       </div>
     );
@@ -67,9 +68,9 @@ export function AdminGate({ children }: { children: ReactNode }) {
 
   if (gate.kind === "guest") {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
-        <p className="text-lg font-bold text-white">Вход для администратора</p>
-        <p className="mt-2 text-sm text-white/55">
+      <div className={`${admin.card} p-8 text-center`}>
+        <p className="text-lg font-bold text-[#111111]">Вход для администратора</p>
+        <p className="mt-2 text-sm text-[#6b6b6b]">
           {local
             ? "Войди через Google. Email должен быть в ADMIN_EMAILS в .env.local."
             : "Войди через Google. Email должен быть в ADMIN_EMAILS на сервере."}
@@ -77,7 +78,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
         <button
           type="button"
           onClick={() => void signInWithGoogle("/admin")}
-          className="mt-5 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-[#2F251D] active:scale-[0.98]"
+          className={`${admin.btnPrimary} mt-5 px-6 py-3`}
         >
           Войти через Google
         </button>
@@ -87,51 +88,33 @@ export function AdminGate({ children }: { children: ReactNode }) {
 
   if (gate.kind === "forbidden") {
     return (
-      <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-8 text-center">
-        <p className="text-lg font-bold text-white">Нет доступа</p>
+      <div className="rounded-[var(--radius-md)] border border-[#fecaca] bg-[#fef2f2] p-8 text-center">
+        <p className="text-lg font-bold text-[#111111]">Нет доступа</p>
         {!gate.configured ? (
           <>
-            <p className="mt-2 text-sm text-white/70">
-              Не настроен <code className="text-white">ADMIN_EMAILS</code>
+            <p className="mt-2 text-sm text-[#6b6b6b]">
+              Не настроен <code>ADMIN_EMAILS</code>
               {local ? " в .env.local" : " на сервере"}.
             </p>
-            <p className="mt-3 text-xs text-amber-200/80">
+            <p className="mt-3 text-xs text-[#92400e]">
               {local ? (
                 <>
-                  В файле <code className="text-amber-100">.env.local</code> добавь строку:
+                  В файле <code>.env.local</code> добавь:
                   <br />
-                  <code className="text-amber-100">ADMIN_EMAILS=dimaa9489@gmail.com</code>
+                  <code>ADMIN_EMAILS=your@email.com</code>
                   <br />
-                  Сохрани файл и перезапусти dev-сервер: Ctrl+C → <code>npm run dev</code>
+                  Перезапусти dev-сервер.
                 </>
               ) : (
-                <>
-                  Vercel → angle-app → Environment Variables →{" "}
-                  <code className="text-amber-100">ADMIN_EMAILS=dimaa9489@gmail.com</code>
-                  <br />
-                  Затем Redeploy.
-                </>
+                <>Vercel → Environment Variables → ADMIN_EMAILS → Redeploy.</>
               )}
             </p>
           </>
         ) : (
           <>
-            <p className="mt-2 text-sm text-white/70">
-              Вошёл как <strong>{gate.email}</strong> — этого email нет в списке админов (
+            <p className="mt-2 text-sm text-[#6b6b6b]">
+              Вошёл как <strong>{gate.email}</strong> — email не в списке админов (
               {gate.adminCount}).
-            </p>
-            <p className="mt-3 text-xs text-amber-200/80">
-              {local ? (
-                <>
-                  Добавь <code className="text-amber-100">{gate.email}</code> в ADMIN_EMAILS в
-                  .env.local и перезапусти <code>npm run dev</code>.
-                </>
-              ) : (
-                <>
-                  Добавь <code className="text-amber-100">{gate.email}</code> в ADMIN_EMAILS на
-                  Vercel и сделай Redeploy.
-                </>
-              )}
             </p>
           </>
         )}

@@ -7,10 +7,10 @@ export const IMAGES = {
     "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=720&q=80",
 } as const;
 
-/** 4 вкладки: Главная → Поиск → Избранное → Профиль */
+/** 4 tabs: Home → Search → Favorites → Profile */
 export const NAV_ITEMS = [
-  { href: "/", label: "Главная", icon: "home" as const },
-  { href: "/search", label: "Поиск", icon: "search" as const },
-  { href: "/favorites", label: "Избранное", icon: "heart" as const },
-  { href: "/profile", label: "Профиль", icon: "user" as const },
+  { href: "/", icon: "home" as const, labelKey: "navHome" as const },
+  { href: "/search", icon: "search" as const, labelKey: "navSearch" as const },
+  { href: "/favorites", icon: "heart" as const, labelKey: "navFavorites" as const },
+  { href: "/profile", icon: "user" as const, labelKey: "navProfile" as const },
 ] as const;

@@ -1,18 +1,21 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth, getGreeting } from "@/components/AuthProvider";
 import { PoseFeedGrid } from "@/components/PoseFeedGrid";
 import { SearchBar } from "@/components/SearchBar";
 import { useHomeHeaderScroll } from "@/hooks/useHomeHeaderScroll";
-import { fetchPosesPage } from "@/lib/poses";
+import { mergeUniquePoses } from "@/lib/pose-feed-layout";
+import { fetchHomePosesPool } from "@/lib/poses";
 import type { Pose } from "@/lib/types";
 import { useFilterStore } from "@/stores/useFilterStore";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const PAGE_SIZE = 12;
-const HEADER_SPACER = 118;
+const HEADER_SPACER_FALLBACK = 172;
+const HEADER_FEED_GAP = 20;
 
 const HomeFeed = memo(function HomeFeed({
   poses,
@@ -20,26 +23,40 @@ const HomeFeed = memo(function HomeFeed({
   loadingMore,
   hasMore,
   sentinelRef,
+  loadingLabel,
+  loadingMoreLabel,
+  endLabel,
 }: {
   poses: Pose[];
   loading: boolean;
   loadingMore: boolean;
   hasMore: boolean;
   sentinelRef: React.RefObject<HTMLDivElement | null>;
+  loadingLabel: string;
+  loadingMoreLabel: string;
+  endLabel: string;
 }) {
   if (loading && poses.length === 0) {
-    return <div className="py-10 text-center text-sm text-white/55">Загружаем ленту…</div>;
+    return (
+      <div className="py-10 text-center text-sm text-[var(--text-secondary)]">
+        {loadingLabel}
+      </div>
+    );
   }
 
   return (
     <>
-      <PoseFeedGrid poses={poses} />
+      <PoseFeedGrid poses={poses} enableDynamicBg />
       <div ref={sentinelRef} className="h-6" aria-hidden />
       {loadingMore ? (
-        <p className="pb-6 text-center text-sm text-white/50">Загружаем ещё…</p>
+        <p className="pb-6 text-center text-sm text-[var(--text-secondary)]">
+          {loadingMoreLabel}
+        </p>
       ) : null}
       {!hasMore && poses.length > 0 ? (
-        <p className="pb-8 text-center text-xs text-white/35">Вы посмотрели всё</p>
+        <p className="pb-8 text-center text-xs text-[var(--text-tertiary)]">
+          {endLabel}
+        </p>
       ) : null}
     </>
   );
@@ -47,19 +64,50 @@ const HomeFeed = memo(function HomeFeed({
 
 export function HomeContent() {
   const { firstName } = useAuth();
+  const { t, language } = useTranslation();
   const router = useRouter();
   const query = useFilterStore((s) => s.filters.query);
   const headerRef = useRef<HTMLDivElement>(null);
-  useHomeHeaderScroll(headerRef);
+  const headerInnerRef = useRef<HTMLDivElement>(null);
+  const headerScrolled = useHomeHeaderScroll(headerRef);
+  const [headerSpacer, setHeaderSpacer] = useState(HEADER_SPACER_FALLBACK);
 
   const [poses, setPoses] = useState<Pose[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const offsetRef = useRef(0);
+  const shownIdsRef = useRef(new Set<string>());
   const hasMoreRef = useRef(true);
   const loadingMoreRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    const outer = headerRef.current;
+    const inner = headerInnerRef.current;
+    if (!outer || !inner) return;
+
+    const updateSpacer = () => {
+      const measured = Math.ceil(inner.getBoundingClientRect().height);
+      if (measured > 0) {
+        setHeaderSpacer(measured + HEADER_FEED_GAP);
+      }
+    };
+
+    updateSpacer();
+
+    const observer = new ResizeObserver(updateSpacer);
+    observer.observe(inner);
+    observer.observe(outer);
+    window.addEventListener("resize", updateSpacer);
+
+    const fontsReady = document.fonts?.ready;
+    void fontsReady?.then(updateSpacer);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateSpacer);
+    };
+  }, [firstName]);
 
   const openSearch = useCallback(() => {
     const nextQuery = query.trim();
@@ -76,14 +124,14 @@ export function HomeContent() {
     setLoadingMore(true);
 
     try {
-      const { poses: batch, hasMore: more } = await fetchPosesPage(
-        offsetRef.current,
-        PAGE_SIZE
+      const { poses: batch, hasMore: more } = await fetchHomePosesPool(
+        PAGE_SIZE,
+        shownIdsRef.current
       );
 
       if (batch.length) {
-        setPoses((current) => [...current, ...batch]);
-        offsetRef.current += batch.length;
+        batch.forEach((pose) => shownIdsRef.current.add(pose.id));
+        setPoses((current) => mergeUniquePoses(current, batch));
       }
 
       const nextHasMore = more && batch.length > 0;
@@ -110,7 +158,7 @@ export function HomeContent() {
           void loadMore();
         }
       },
-      { rootMargin: "320px 0px", threshold: 0 }
+      { rootMargin: "180px 0px", threshold: 0 }
     );
 
     observer.observe(node);
@@ -119,18 +167,21 @@ export function HomeContent() {
 
   return (
     <>
-      <div aria-hidden style={{ height: HEADER_SPACER }} />
-
       <div
         ref={headerRef}
-        className="angle-home-header-bar angle-home-header-visible fixed inset-x-0 top-0 z-30 mx-auto w-full max-w-lg px-4"
+        className="angle-home-header-bar angle-home-header-visible fixed inset-x-0 top-0 z-30 mx-auto w-full max-w-lg px-4 pt-[max(10px,env(safe-area-inset-top))]"
       >
-        <div className="angle-home-header border-b border-white/10 bg-[#4a382c] px-4 pb-3 pt-[max(10px,env(safe-area-inset-top))]">
-          <p className="mb-0.5 text-[13px] font-medium text-white/80">
-            {getGreeting(firstName)}
+        <div
+          ref={headerInnerRef}
+          className={`angle-inner-glass p-4 ${
+            headerScrolled ? "angle-home-header-scrolled shadow-[var(--shadow-sm)]" : ""
+          }`}
+        >
+          <p className="mb-0.5 text-[13px] font-medium text-[var(--text-secondary)]">
+            {getGreeting(firstName, language)}
           </p>
-          <h1 className="mb-2.5 text-[18px] font-bold leading-tight text-white">
-            Что сегодня будем фотографировать?
+          <h1 className="mb-2.5 text-[18px] font-bold leading-tight">
+            {t("homeTitle")}
           </h1>
 
           <SearchBar
@@ -141,12 +192,17 @@ export function HomeContent() {
         </div>
       </div>
 
+      <div aria-hidden style={{ height: headerSpacer }} />
+
       <HomeFeed
         poses={poses}
         loading={loading}
         loadingMore={loadingMore}
         hasMore={hasMore}
         sentinelRef={sentinelRef}
+        loadingLabel={t("homeFeedLoading")}
+        loadingMoreLabel={t("homeFeedLoadingMore")}
+        endLabel={t("homeFeedEnd")}
       />
     </>
   );

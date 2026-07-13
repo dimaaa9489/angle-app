@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/admin-auth";
 import { resolvePoseImageUrl } from "@/lib/pose-image-url";
+import { buildFullPoseKeywords } from "@/lib/pose-search-keywords";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import type { Pose } from "@/lib/types";
+import type { Pose, PoseFilterSelection } from "@/lib/types";
 
 function rowToPose(row: Record<string, unknown>): Pose {
   const imageKey = row.image_key ? String(row.image_key) : undefined;
@@ -71,13 +72,25 @@ export async function POST(request: Request) {
     }
 
     const supabase = getSupabaseAdmin();
+
+    const selection: PoseFilterSelection = {
+      categories: body.category ? [body.category] : [],
+      shotTypes: body.shotType ? [body.shotType] : [],
+      locations: body.locations ?? [],
+      peopleCount: body.peopleCount ?? [],
+      sessionTypes: body.sessionTypes ?? [],
+      styles: body.styles ?? [],
+    };
+
+    const keywords = await buildFullPoseKeywords(selection, body.title.trim());
+
     const { data, error } = await supabase
       .from("poses")
       .insert({
         image_url: body.imageUrl,
         image_key: body.imageKey ?? null,
         title: body.title.trim(),
-        keywords: body.keywords ?? [],
+        keywords,
         category: body.category ?? "women",
         shot_type: body.shotType ?? "portrait",
         locations: body.locations ?? [],

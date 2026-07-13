@@ -3,6 +3,8 @@
 import { memo, useCallback, useState } from "react";
 import { Loader2, PencilLine, X } from "lucide-react";
 
+import { admin } from "@/components/admin/admin-ui";
+
 export type QueueItem = {
   id: string;
   file: File;
@@ -37,26 +39,26 @@ const QueueThumb = memo(function QueueThumb({
     <button
       type="button"
       onClick={onSelect}
-      className={`relative h-20 w-16 shrink-0 overflow-hidden rounded-xl border-2 ${
-        active ? "border-[#B8956B]" : "border-white/10"
+      className={`relative h-20 w-16 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border-2 ${
+        active ? "border-[#111111]" : "border-[rgba(0,0,0,0.08)]"
       }`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={item.preview} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
       {item.status === "uploading" ? (
-        <span className="absolute inset-0 flex items-center justify-center bg-black/50">
+        <span className="absolute inset-0 flex items-center justify-center bg-black/40">
           <Loader2 className="animate-spin text-white" size={16} />
         </span>
       ) : null}
-      {item.status === "done" ? <span className="absolute inset-0 bg-emerald-500/40" /> : null}
-      {item.status === "error" ? <span className="absolute inset-0 bg-red-500/40" /> : null}
+      {item.status === "done" ? <span className="absolute inset-0 bg-emerald-500/30" /> : null}
+      {item.status === "error" ? <span className="absolute inset-0 bg-red-500/30" /> : null}
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           onRemove();
         }}
-        className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white"
+        className="absolute right-0.5 top-0.5 rounded-full bg-black/55 p-0.5 text-white"
       >
         <X size={12} />
       </button>
@@ -73,7 +75,7 @@ const ActiveItemEditor = memo(function ActiveItemEditor({
 }) {
   return (
     <div className="space-y-4">
-      <div className="relative flex h-48 items-center justify-center overflow-hidden rounded-2xl bg-black/30">
+      <div className="relative flex h-48 items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-[#f5f5f5]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={item.preview}
@@ -87,10 +89,10 @@ const ActiveItemEditor = memo(function ActiveItemEditor({
         value={item.title}
         onChange={(e) => onTitleChange(e.target.value)}
         placeholder="Название позы"
-        className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35"
+        className={admin.input}
       />
 
-      {item.error ? <p className="text-sm text-red-300">{item.error}</p> : null}
+      {item.error ? <p className={admin.error}>{item.error}</p> : null}
     </div>
   );
 });
@@ -105,7 +107,7 @@ function BulkRenameBar({ onApply, disabled }: { onApply: (template: string) => v
         type="button"
         disabled={disabled}
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-xl border border-white/15 px-3 py-2 text-xs font-semibold text-white/75 disabled:opacity-40"
+        className={admin.btnSecondary}
       >
         <PencilLine size={14} />
         Массовое переименование
@@ -114,29 +116,20 @@ function BulkRenameBar({ onApply, disabled }: { onApply: (template: string) => v
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-      <p className="mb-2 text-xs font-semibold text-white/55">
-        Шаблон: <code className="text-white/80">{"{n}"}</code> — номер,{" "}
-        <code className="text-white/80">{"{name}"}</code> — имя файла
+    <div className={admin.cardMuted}>
+      <p className="mb-2 text-xs font-semibold text-[#6b6b6b]">
+        Шаблон: <code>{"{n}"}</code> — номер, <code>{"{name}"}</code> — имя файла
       </p>
       <div className="flex gap-2">
         <input
           value={template}
           onChange={(e) => setTemplate(e.target.value)}
-          className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-sm text-white outline-none"
+          className={`${admin.input} min-w-0 flex-1`}
         />
-        <button
-          type="button"
-          onClick={() => onApply(template)}
-          className="shrink-0 rounded-lg bg-[#B8956B] px-3 py-2 text-xs font-bold text-white"
-        >
+        <button type="button" onClick={() => onApply(template)} className={admin.btnPrimary}>
           Применить
         </button>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="shrink-0 rounded-lg border border-white/15 px-2 py-2 text-white/60"
-        >
+        <button type="button" onClick={() => setOpen(false)} className={admin.btnSecondary}>
           <X size={14} />
         </button>
       </div>
@@ -169,7 +162,7 @@ export const AdminQueueSection = memo(function AdminQueueSection({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-white/45">{pendingCount} к публикации</p>
+        <p className="text-xs text-[#a3a3a3]">{pendingCount} к публикации</p>
         <BulkRenameBar onApply={onBulkRename} disabled={uploading || pendingCount === 0} />
       </div>
 

@@ -5,6 +5,7 @@ import { memo } from "react";
 import { PoseCard } from "@/components/PoseCard";
 import { GlassCard } from "@/components/GlassCard";
 import type { Pose } from "@/lib/types";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const aspects: Array<"tall" | "medium" | "short"> = [
   "medium",
@@ -19,12 +20,14 @@ export const PoseMasonryGrid = memo(function PoseMasonryGrid({
 }: {
   poses: Pose[];
 }) {
+  const { t } = useTranslation();
+
   if (!poses.length) {
     return (
       <GlassCard padding="md" className="text-center">
-        <p className="text-base font-semibold text-white">Ничего не найдено</p>
-        <p className="mt-2 text-sm text-white/55">
-          Измените фильтры или поисковый запрос
+        <p className="text-base font-semibold">{t("commonNothingFound")}</p>
+        <p className="mt-2 text-sm text-[var(--text-secondary)]">
+          {t("commonNothingFoundHint")}
         </p>
       </GlassCard>
     );

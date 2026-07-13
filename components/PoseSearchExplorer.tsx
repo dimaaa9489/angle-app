@@ -12,6 +12,7 @@ import { countActiveFilters, filterPoses } from "@/lib/pose-utils";
 import { fetchPoses } from "@/lib/poses";
 import type { Pose, PoseFilters } from "@/lib/types";
 import { useFilterStore } from "@/stores/useFilterStore";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const SEARCH_RESULT_LIMIT = 48;
 
@@ -19,15 +20,19 @@ const SearchResults = memo(function SearchResults({
   poses,
   totalMatches,
   loading,
+  loadingLabel,
+  foundLabel,
 }: {
   poses: Pose[];
   totalMatches: number;
   loading: boolean;
+  loadingLabel: string;
+  foundLabel: string;
 }) {
   if (loading) {
     return (
-      <GlassCard padding="md" className="text-center text-sm text-white/50">
-        Загружаем…
+      <GlassCard padding="md" className="text-center text-sm text-[var(--text-secondary)]">
+        {loadingLabel}
       </GlassCard>
     );
   }
@@ -35,19 +40,15 @@ const SearchResults = memo(function SearchResults({
   return (
     <>
       <div className="mb-3 flex items-center justify-between px-1">
-        <p className="text-sm font-semibold text-white/85">
-          Найдено: {totalMatches}
-          {totalMatches > SEARCH_RESULT_LIMIT
-            ? ` (показаны первые ${SEARCH_RESULT_LIMIT})`
-            : ""}
-        </p>
+        <p className="text-sm font-semibold">{foundLabel}</p>
       </div>
-      <PoseFeedGrid poses={poses} />
+      <PoseFeedGrid poses={poses} enableDynamicBg />
     </>
   );
 });
 
 export function PoseSearchExplorer() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const [poses, setPoses] = useState<Pose[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,14 +94,20 @@ export function PoseSearchExplorer() {
   }, [poses, filters]);
 
   const activeCount = countActiveFilters(filters);
+  const foundLabel =
+    totalMatches > SEARCH_RESULT_LIMIT
+      ? t("searchFoundLimited", { count: totalMatches, limit: SEARCH_RESULT_LIMIT })
+      : t("searchFound", { count: totalMatches });
 
   return (
     <>
       <GlassCard className="mb-4" padding="md">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-bold text-white">Поиск</h1>
-            <p className="mt-0.5 text-xs text-white/55">Фильтры и ключевые слова</p>
+            <h1 className="text-[20px] font-bold">{t("searchTitle")}</h1>
+            <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
+              {t("searchSubtitle")}
+            </p>
           </div>
           <button
             type="button"
@@ -108,9 +115,9 @@ export function PoseSearchExplorer() {
               resetFilters();
               setFiltersOpen(false);
             }}
-            className="text-sm font-semibold text-white/65 active:opacity-70"
+            className="text-sm font-semibold text-[var(--text-secondary)] active:opacity-70"
           >
-            Сбросить
+            {t("searchReset")}
           </button>
         </div>
 
@@ -125,7 +132,13 @@ export function PoseSearchExplorer() {
         {filtersOpen ? <PoseFilterPanel /> : null}
       </GlassCard>
 
-      <SearchResults poses={filtered} totalMatches={totalMatches} loading={loading} />
+      <SearchResults
+        poses={filtered}
+        totalMatches={totalMatches}
+        loading={loading}
+        loadingLabel={t("searchLoading")}
+        foundLabel={foundLabel}
+      />
     </>
   );
 }

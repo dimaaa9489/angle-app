@@ -1,9 +1,10 @@
 "use client";
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 
-import { FILTER_GROUPS } from "@/lib/filters";
+import { getFilterGroups } from "@/lib/filters";
 import type { PoseFilterSelection } from "@/lib/types";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 
 function toggleInArray<T extends string>(list: T[], value: T) {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
@@ -33,8 +34,8 @@ const FilterGroup = memo(function FilterGroup({
       <p
         className={
           isAdmin
-            ? "mb-1.5 text-[11px] font-bold uppercase tracking-wide text-white/45"
-            : "mb-2 text-sm font-semibold text-white/70"
+            ? "mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]"
+            : "mb-2 text-sm font-semibold text-[var(--text-secondary)]"
         }
       >
         {title}
@@ -51,8 +52,8 @@ const FilterGroup = memo(function FilterGroup({
                 isAdmin
                   ? `rounded-full border px-2.5 py-1 text-xs font-semibold ${
                       active
-                        ? "border-[#B8956B] bg-[#B8956B]/20 text-white"
-                        : "border-white/15 text-white/70"
+                        ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--text-primary)]"
+                        : "border-[var(--border)] text-[var(--text-secondary)]"
                     }`
                   : `filter-chip ${active ? "filter-chip-active" : ""}`
               }
@@ -72,6 +73,8 @@ export const FilterChipGroups = memo(function FilterChipGroups({
   variant = "app",
 }: FilterChipGroupsProps) {
   const isAdmin = variant === "admin";
+  const language = useSettingsStore((s) => s.language);
+  const filterGroups = useMemo(() => getFilterGroups(language), [language]);
 
   const toggle = useCallback(
     (key: keyof PoseFilterSelection, id: string) => {
@@ -85,8 +88,12 @@ export const FilterChipGroups = memo(function FilterChipGroups({
   );
 
   return (
-    <div className={isAdmin ? "space-y-3" : "space-y-4 border-t border-white/10 pt-4"}>
-      {FILTER_GROUPS.map((group) => (
+    <div
+      className={
+        isAdmin ? "space-y-3" : "space-y-4 border-t border-[var(--border)] pt-4"
+      }
+    >
+      {filterGroups.map((group) => (
         <FilterGroup
           key={group.key}
           title={group.title}

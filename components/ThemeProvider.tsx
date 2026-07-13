@@ -9,7 +9,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    const apply = (dark: boolean) => root.classList.toggle("dark", dark);
+    const apply = (dark: boolean) => {
+      root.classList.toggle("dark", dark);
+      root.style.colorScheme = dark ? "dark" : "light";
+    };
 
     if (theme === "dark") apply(true);
     else if (theme === "light") apply(false);

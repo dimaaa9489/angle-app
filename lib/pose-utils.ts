@@ -1,25 +1,8 @@
+import { matchesTextQuery } from "@/lib/pose-search";
 import type { Pose, PoseFilters } from "@/lib/types";
 
-function normalize(text: string) {
-  return text.toLowerCase().trim();
-}
-
 export function matchesPoseFilters(pose: Pose, filters: PoseFilters): boolean {
-  const q = normalize(filters.query);
-  if (q) {
-    const haystack = [
-      pose.title,
-      ...pose.keywords,
-      pose.category,
-      pose.shotType,
-      ...pose.locations,
-      ...pose.sessionTypes,
-      ...pose.styles,
-    ]
-      .join(" ")
-      .toLowerCase();
-    if (!haystack.includes(q)) return false;
-  }
+  if (!matchesTextQuery(pose, filters.query)) return false;
 
   if (filters.categories.length && !filters.categories.includes(pose.category)) {
     return false;

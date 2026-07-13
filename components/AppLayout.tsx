@@ -1,24 +1,22 @@
 import type { ReactNode } from "react";
 
 import { BottomNav } from "@/components/BottomNav";
-import { IMAGES } from "@/lib/content";
+import { DynamicBackground } from "@/components/DynamicBackground";
+import { ShareToast } from "@/components/ShareToast";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="angle-app-root">
-      <div
-        className="angle-bg-layer"
-        style={{ backgroundImage: `url(${IMAGES.homeBackground})` }}
-        aria-hidden
-      />
-      <div className="angle-vignette" aria-hidden />
+      <DynamicBackground />
 
-      <div className="angle-content safe-top mx-auto w-full max-w-lg px-4 pb-28 pt-4">
+      <div className="angle-content mx-auto w-full max-w-lg px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">
         {children}
-      </div>
 
-      <div className="angle-bottom-nav-shell">
-        <BottomNav />
+        <div className="angle-bottom-nav-shell">
+          <BottomNav />
+        </div>
+
+        <ShareToast />
       </div>
     </div>
   );

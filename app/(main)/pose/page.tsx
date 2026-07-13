@@ -4,15 +4,21 @@ import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Check, FolderPlus, Heart, MapPin, Share2, Sparkles, Users } from "lucide-react";
+import { motion } from "framer-motion";
 
 import { GlassCard } from "@/components/GlassCard";
+import { MotionSheet } from "@/components/MotionSheet";
 import { getFilterLabel } from "@/lib/filters";
 import { fetchPoseById } from "@/lib/poses";
+import { sharePose } from "@/lib/share-pose";
+import { useDynamicBackground } from "@/hooks/useDynamicBackground";
+import { useTranslation } from "@/hooks/useTranslation";
 import type { Pose } from "@/lib/types";
 import { SAVED_FOLDER_ID, useFavoritesStore } from "@/stores/useFavoritesStore";
 
 function PoseDetailInner() {
   const searchParams = useSearchParams();
+  const { t, language } = useTranslation();
   const id = searchParams.get("id");
   const [pose, setPose] = useState<Pose | null>(null);
   const [foldersOpen, setFoldersOpen] = useState(false);
@@ -29,6 +35,8 @@ function PoseDetailInner() {
   const folderIds = id ? getPoseFolderIds(id) : [];
   const isInCustomFolder = folderIds.some((folderId) => folderId !== SAVED_FOLDER_ID);
 
+  useDynamicBackground(pose?.imageUrl);
+
   useEffect(() => {
     ensureDefaults();
   }, [ensureDefaults]);
@@ -40,38 +48,36 @@ function PoseDetailInner() {
 
   if (!id) {
     return (
-      <GlassCard className="p-8 text-center">Поза не найдена</GlassCard>
+      <GlassCard className="p-8 text-center">{t("poseNotFound")}</GlassCard>
     );
   }
 
   if (!pose) {
     return (
-      <GlassCard className="animate-pulse p-10 text-center text-sm">
-        Загрузка…
+      <GlassCard className="animate-pulse p-10 text-center text-sm text-[var(--text-secondary)]">
+        {t("poseLoading")}
       </GlassCard>
     );
   }
 
-  const share = async () => {
-    const url = `${window.location.origin}/pose?id=${pose.id}`;
-    if (navigator.share) await navigator.share({ title: pose.title, url });
-    else await navigator.clipboard.writeText(url);
+  const share = () => {
+    void sharePose({ poseId: pose.id, title: pose.title });
   };
 
   const infoChips = [
     ...pose.locations.slice(0, 3).map((item) => ({
       key: `loc-${item}`,
-      label: getFilterLabel(item),
+      label: getFilterLabel(item, language),
       icon: MapPin,
     })),
     ...pose.peopleCount.slice(0, 1).map((item) => ({
       key: `people-${item}`,
-      label: getFilterLabel(item),
+      label: getFilterLabel(item, language),
       icon: Users,
     })),
     ...pose.styles.slice(0, 3).map((item) => ({
       key: `style-${item}`,
-      label: getFilterLabel(item),
+      label: getFilterLabel(item, language),
       icon: Sparkles,
     })),
   ];
@@ -92,8 +98,11 @@ function PoseDetailInner() {
 
   return (
     <>
-      <div
-        className="relative mb-4 overflow-hidden rounded-[30px] border border-white/12 bg-[#E8DDD2] shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="relative mb-4 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-elevated)] shadow-[var(--shadow-md)]"
         onContextMenu={(e) => e.preventDefault()}
       >
         <div className="relative h-[64dvh] min-h-[420px]">
@@ -106,16 +115,21 @@ function PoseDetailInner() {
             draggable={false}
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#241710]/38 via-transparent to-black/10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
         </div>
-      </div>
+      </motion.div>
 
-      <div className="mb-4 rounded-[30px] border border-white/12 bg-black/20 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.14)] backdrop-blur-2xl">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+        className="angle-inner-glass mb-4 p-4"
+      >
         <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/38">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--text-tertiary)]">
             Angle
           </p>
-          <h1 className="mt-1 text-[28px] font-extrabold leading-tight text-white">
+          <h1 className="mt-1 text-[28px] font-extrabold leading-tight">
             {pose.title}
           </h1>
         </div>
@@ -127,9 +141,9 @@ function PoseDetailInner() {
               return (
                 <div
                   key={chip.key}
-                  className="flex items-center gap-1.5 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-xs font-semibold text-white/85"
+                  className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-chip)] px-3 py-1.5 text-xs font-semibold"
                 >
-                  <Icon size={13} className="text-white/65" />
+                  <Icon size={13} className="text-[var(--text-secondary)]" />
                   <span className="capitalize">{chip.label}</span>
                 </div>
               );
@@ -141,94 +155,81 @@ function PoseDetailInner() {
           <button
             type="button"
             onClick={() => toggleStar(pose.id)}
-            className={`flex h-12 items-center justify-center rounded-2xl border transition-transform active:scale-[0.98] ${
-              isStarred
-                ? "border-[#B8956B] bg-[#B8956B]/24 text-white"
-                : "border-white/12 bg-white/8 text-[#F5EDE4]"
-            }`}
-            aria-label="Лайк"
+            data-active={isStarred}
+            className="angle-btn-icon h-12"
+            aria-label={t("poseLike")}
           >
             <Heart
               size={19}
-              className={isStarred ? "fill-[#ff7887] text-[#ff7887]" : "text-white"}
+              className={isStarred ? "fill-[var(--accent-like)] text-[var(--accent-like)]" : undefined}
             />
           </button>
           <button
             type="button"
             onClick={openFolderPicker}
-            className={`flex h-12 items-center justify-center rounded-2xl border transition-transform active:scale-[0.98] ${
-              isInCustomFolder
-                ? "border-[#B8956B] bg-[#B8956B]/24 text-white"
-                : "border-white/12 bg-white/8 text-[#F5EDE4]"
-            }`}
-            aria-label="В папку"
+            data-active={isInCustomFolder}
+            className="angle-btn-icon h-12"
+            aria-label={t("poseAddFolder")}
           >
             <FolderPlus size={19} />
           </button>
           <button
             type="button"
-            onClick={() => void share()}
-            className="flex h-12 items-center justify-center rounded-2xl bg-[#B8956B] text-white transition-transform active:scale-[0.98]"
-            aria-label="Поделиться"
+            onClick={share}
+            className="angle-btn-primary h-12"
+            aria-label={t("poseShare")}
           >
             <Share2 size={19} />
           </button>
         </div>
-      </div>
+      </motion.div>
 
-      {foldersOpen ? (
-        <div
-          className="fixed inset-0 z-40 flex items-end bg-black/45 px-4 pb-4 pt-10 backdrop-blur-sm"
-          onClick={() => setFoldersOpen(false)}
-        >
-          <div
-            className="safe-bottom mx-auto w-full max-w-lg rounded-[28px] border border-white/12 bg-[#4A382C]/96 p-4 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-white/20" />
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-base font-bold text-white">Добавить в папку</p>
-                <p className="mt-1 text-sm text-white/50">Выберите одну из папок ниже</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFoldersOpen(false)}
-                className="text-sm font-semibold text-white/65"
-              >
-                Закрыть
-              </button>
-            </div>
-            <div className="space-y-2">
-              {selectableFolders.map((folder) => {
-                const active = selectedFolders.includes(folder.id);
-                return (
-                  <button
-                    key={folder.id}
-                    type="button"
-                    onClick={() => assignFolder(folder.id)}
-                    className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition-transform active:scale-[0.98] ${
-                      active
-                        ? "border-[#B8956B] bg-[#B8956B]/20 text-white"
-                        : "border-white/12 bg-white/8 text-white/85"
-                    }`}
-                  >
-                    <span>{folder.name}</span>
-                    {active ? <Check size={16} className="opacity-90" /> : null}
-                  </button>
-                );
-              })}
-            </div>
+      <MotionSheet open={foldersOpen} onClose={() => setFoldersOpen(false)}>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-base font-bold">{t("poseFolderTitle")}</p>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              {t("poseFolderSubtitle")}
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setFoldersOpen(false)}
+            className="text-sm font-semibold text-[var(--text-secondary)]"
+          >
+            {t("commonClose")}
+          </button>
         </div>
-      ) : null}
+        <div className="space-y-2">
+          {selectableFolders.map((folder) => {
+            const active = selectedFolders.includes(folder.id);
+            return (
+              <button
+                key={folder.id}
+                type="button"
+                onClick={() => assignFolder(folder.id)}
+                className={`flex w-full items-center justify-between rounded-[var(--radius-md)] border px-4 py-3 text-left text-sm font-semibold transition-transform active:scale-[0.98] ${
+                  active
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                    : "border-[var(--border)] bg-[var(--bg-elevated)]"
+                }`}
+              >
+                <span>{folder.name}</span>
+                {active ? <Check size={16} /> : null}
+              </button>
+            );
+          })}
+        </div>
+      </MotionSheet>
     </>
   );
 }
 
 export default function PoseDetailPage() {
+  const { t } = useTranslation();
+
   return (
-    <Suspense fallback={<GlassCard className="p-10 text-center">Загрузка…</GlassCard>}>
+    <Suspense fallback={<GlassCard className="p-10 text-center">{t("poseLoading")}</GlassCard>}>
       <PoseDetailInner />
     </Suspense>
   );

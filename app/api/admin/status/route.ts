@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAdminEmails, requireAdmin } from "@/lib/admin-auth";
+import { isMachineTranslationConfigured, getTranslateProvider } from "@/lib/i18n/machine-translate";
 import { getR2ConfigStatus } from "@/lib/r2-config";
 
 function getSupabaseStatus() {
@@ -25,5 +26,9 @@ export async function GET(request: Request) {
     r2,
     supabase,
     adminEmailsConfigured: admins.length > 0,
+    translation: {
+      configured: isMachineTranslationConfigured(),
+      provider: getTranslateProvider(),
+    },
   });
 }

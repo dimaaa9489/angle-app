@@ -5,6 +5,7 @@ import { ImagePlus, Loader2, Upload } from "lucide-react";
 
 import { AdminQueueSection, type QueueItem } from "@/components/admin/AdminQueueSection";
 import { AdminUploadFilters } from "@/components/admin/AdminUploadFilters";
+import { admin } from "@/components/admin/admin-ui";
 import { adminFetch, adminUploadFile } from "@/lib/admin-api";
 import {
   applyBulkRenameTemplate,
@@ -36,7 +37,7 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const imageFiles = Array.from(files).filter(isImageFile);
     if (!imageFiles.length) {
-      setMessage("Не найдено изображений (поддерживаются JPG, PNG, WebP…)");
+      setMessage("Не найдено изображений (JPG, PNG, WebP…)");
       return;
     }
 
@@ -129,16 +130,16 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#2a211a]/80 p-5 backdrop-blur-xl">
+    <div className={admin.card}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-white">Загрузка поз</h2>
-          <p className="mt-1 text-sm text-white/50">Название + фильтры → сразу в ленте</p>
+          <h2 className={admin.title}>Загрузка поз</h2>
+          <p className={admin.subtitle}>
+            Название на ru/en → DeepL переводит в keywords на 18 языков
+          </p>
         </div>
         {pendingCount > 0 ? (
-          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
-            {pendingCount} в очереди
-          </span>
+          <span className={admin.badge}>{pendingCount} в очереди</span>
         ) : null}
       </div>
 
@@ -153,14 +154,10 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
           setDragOver(false);
           if (e.dataTransfer.files.length) void addFiles(e.dataTransfer.files);
         }}
-        className={`mb-4 flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 text-center transition ${
-          dragOver
-            ? "border-[#B8956B] bg-[#B8956B]/10"
-            : "border-white/15 bg-white/5 hover:border-white/25"
-        }`}
+        className={`${admin.dropzone} mb-4 ${dragOver ? admin.dropzoneActive : ""}`}
       >
-        <ImagePlus className="mb-2 text-white/60" size={28} />
-        <p className="text-sm font-semibold text-white">Перетащи фото или выбери файлы</p>
+        <ImagePlus className="mb-2 text-[#a3a3a3]" size={28} />
+        <p className="text-sm font-semibold text-[#111111]">Перетащи фото или выбери файлы</p>
         <input
           type="file"
           accept="image/*"
@@ -189,13 +186,13 @@ export function AdminUploadPanel({ onPublished }: AdminUploadPanelProps) {
         type="button"
         disabled={!pendingCount || uploading}
         onClick={() => void publishQueue()}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#B8956B] py-3.5 text-sm font-bold text-white disabled:opacity-50"
+        className={`${admin.btnPrimary} mt-5 w-full py-3.5`}
       >
         {uploading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
         {uploading ? "Публикуем…" : `Опубликовать${pendingCount ? ` (${pendingCount})` : ""}`}
       </button>
 
-      {message ? <p className="mt-3 text-sm font-medium text-emerald-200/90">{message}</p> : null}
+      {message ? <p className={`mt-3 ${admin.success}`}>{message}</p> : null}
     </div>
   );
 }

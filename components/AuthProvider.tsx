@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 
 import { supabase } from "@/lib/supabase";
+import { translate } from "@/lib/i18n/ui-messages";
+import type { AppLanguage } from "@/lib/types";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 
 type AuthContextValue = {
@@ -83,7 +85,7 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-export function getGreeting(firstName: string | null): string {
-  if (firstName) return `Привет, ${firstName}!`;
-  return "Привет, фотограф! 👋";
+export function getGreeting(firstName: string | null, language: AppLanguage = "ru"): string {
+  if (firstName) return translate(language, "homeGreetingName", { name: firstName });
+  return translate(language, "homeGreetingDefault");
 }

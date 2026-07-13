@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Heart, Share2 } from "lucide-react";
 
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
+import { sharePose } from "@/lib/share-pose";
 import type { Pose } from "@/lib/types";
 
 type PoseCardProps = {
@@ -29,13 +30,8 @@ const PoseCardActions = memo(function PoseCardActions({
   const isStarred = useFavoritesStore((s) => s.isStarred(poseId));
   const toggleStar = useFavoritesStore((s) => s.toggleStar);
 
-  const sharePose = useCallback(async () => {
-    const url = `${window.location.origin}/pose?id=${poseId}`;
-    if (navigator.share) {
-      await navigator.share({ title, url });
-    } else {
-      await navigator.clipboard.writeText(url);
-    }
+  const sharePoseAction = useCallback(async () => {
+    await sharePose({ poseId, title });
   }, [poseId, title]);
 
   return (
@@ -51,14 +47,14 @@ const PoseCardActions = memo(function PoseCardActions({
       >
         <Heart
           size={15}
-          className={isStarred ? "fill-[#ff6b7a] text-[#ff6b7a]" : "text-white"}
+          className={isStarred ? "fill-[var(--accent-like)] text-[var(--accent-like)]" : "text-white"}
         />
       </button>
       <button
         type="button"
         onClick={(e) => {
           e.preventDefault();
-          void sharePose();
+          void sharePoseAction();
         }}
         className="flex h-8 w-8 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm transition-transform active:scale-90"
         aria-label="Поделиться"

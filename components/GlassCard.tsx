@@ -15,7 +15,7 @@ const paddingMap = {
 
 export function GlassCard({ children, className = "", padding = "lg" }: GlassCardProps) {
   return (
-    <div className={`angle-inner-glass text-white ${paddingMap[padding]} ${className}`}>
+    <div className={`angle-inner-glass ${paddingMap[padding]} ${className}`}>
       {children}
     </div>
   );

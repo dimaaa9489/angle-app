@@ -3,6 +3,7 @@
 import { memo } from "react";
 
 import { FilterChipGroups } from "@/components/FilterChipGroups";
+import { admin } from "@/components/admin/admin-ui";
 import type { PoseFilterSelection } from "@/lib/types";
 
 type AdminUploadFiltersProps = {
@@ -15,10 +16,8 @@ export const AdminUploadFilters = memo(function AdminUploadFilters({
   onChange,
 }: AdminUploadFiltersProps) {
   return (
-    <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-3">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/45">
-        Фильтры для всей очереди
-      </p>
+    <div className={`${admin.cardMuted} mt-4`}>
+      <p className={`${admin.label} mb-3`}>Фильтры для всей очереди</p>
       <FilterChipGroups variant="admin" selection={selection} onChange={onChange} />
     </div>
   );

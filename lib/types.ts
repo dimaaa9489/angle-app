@@ -114,4 +114,22 @@ export type PoseFilters = {
 export type PoseFilterSelection = Omit<PoseFilters, "query">;
 
 export type AppTheme = "light" | "dark" | "system";
-export type AppLanguage = "ru" | "en" | "uk";
+export type AppLanguage =
+  | "ru"
+  | "en"
+  | "uk"
+  | "de"
+  | "fr"
+  | "es"
+  | "it"
+  | "pt"
+  | "pl"
+  | "tr"
+  | "nl"
+  | "cs"
+  | "zh"
+  | "ja"
+  | "ko"
+  | "ar"
+  | "hi"
+  | "id";

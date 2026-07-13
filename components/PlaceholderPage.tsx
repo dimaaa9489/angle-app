@@ -13,8 +13,8 @@ export function PlaceholderPage({
 }) {
   return (
     <GlassCard className="flex min-h-[50dvh] flex-col items-center justify-center text-center">
-      <h1 className="text-[28px] font-extrabold text-[#2F251D]">{title}</h1>
-      <p className="mt-2 text-[15px] text-[#7A6A5D]">{subtitle}</p>
+      <h1 className="text-[28px] font-extrabold">{title}</h1>
+      <p className="mt-2 text-[15px] text-[var(--text-secondary)]">{subtitle}</p>
       {children}
     </GlassCard>
   );

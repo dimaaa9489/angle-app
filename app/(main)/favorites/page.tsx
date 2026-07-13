@@ -4,13 +4,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ArrowLeft, FolderPlus, Pencil, Share2, Trash2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 import { GlassCard } from "@/components/GlassCard";
+import { MotionSheet } from "@/components/MotionSheet";
 import { fetchPoses } from "@/lib/poses";
+import { sharePose } from "@/lib/share-pose";
 import type { Pose } from "@/lib/types";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 
 export default function FavoritesPage() {
+  const { t } = useTranslation();
   const folders = useFavoritesStore((s) => s.folders);
   const ensureDefaults = useFavoritesStore((s) => s.ensureDefaults);
   const createFolder = useFavoritesStore((s) => s.createFolder);
@@ -77,13 +82,8 @@ export default function FavoritesPage() {
     ? poses.find((pose) => pose.id === menuPoseId) ?? null
     : null;
 
-  const sharePose = async (pose: Pose) => {
-    const url = `${window.location.origin}/pose?id=${pose.id}`;
-    if (navigator.share) {
-      await navigator.share({ title: pose.title, url });
-    } else {
-      await navigator.clipboard.writeText(url);
-    }
+  const sharePoseAction = (pose: Pose) => {
+    void sharePose({ poseId: pose.id, title: pose.title });
   };
 
   const removeFromActiveFolder = (poseId: string) => {
@@ -94,8 +94,8 @@ export default function FavoritesPage() {
 
   if (!storeHydrated) {
     return (
-      <GlassCard padding="md" className="text-center text-sm text-white/60">
-        Загрузка…
+      <GlassCard padding="md" className="text-center text-sm text-[var(--text-secondary)]">
+        {t("commonLoading")}
       </GlassCard>
     );
   }
@@ -104,39 +104,48 @@ export default function FavoritesPage() {
     <>
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-[24px] font-bold text-white">Избранное</h1>
-          <p className="mt-1 text-sm text-white/55">Папки с сохранёнными позами</p>
+          <h1 className="text-[24px] font-bold">{t("favoritesTitle")}</h1>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            {t("favoritesSubtitle")}
+          </p>
         </div>
         <button
           type="button"
           onClick={() => {
-            const id = createFolder("Новая папка");
+            const name = t("favoritesNewFolder");
+            const id = createFolder(name);
             setActiveFolder(id);
             setEditingId(id);
-            setEditName("Новая папка");
+            setEditName(name);
           }}
-          className="rounded-2xl border border-white/15 bg-white/10 p-3 active:scale-95"
-          aria-label="Добавить папку"
+          className="angle-btn-icon p-3"
+          aria-label={t("favoritesAddFolder")}
         >
-          <FolderPlus size={20} className="text-white" />
+          <FolderPlus size={20} />
         </button>
       </div>
 
       {activeFolder === null ? (
         <div className="mb-5 grid grid-cols-2 gap-3">
-          {folderCards.map(({ folder, total, previewPoses }) => (
-            <div key={folder.id} className="relative">
+          {folderCards.map(({ folder, total, previewPoses }, index) => (
+            <motion.div
+              key={folder.id}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04, duration: 0.35 }}
+              className="relative"
+            >
               <button
                 type="button"
                 onClick={() => setActiveFolder(folder.id)}
-                className="glass-card relative block aspect-square w-full overflow-hidden rounded-[28px] border border-white/12 bg-white/8 p-3 text-left transition-transform active:scale-[0.98]"
+                className="angle-folder-card relative block aspect-square w-full overflow-hidden p-3 text-left"
               >
                 <div className="grid h-full grid-cols-2 gap-2">
                   {previewPoses.length ? (
                     previewPoses.map((pose) => (
                       <div
                         key={pose.id}
-                        className="relative overflow-hidden rounded-2xl bg-white/10"
+                        className="relative overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-input)]"
                       >
                         <Image
                           src={pose.imageUrl}
@@ -148,19 +157,21 @@ export default function FavoritesPage() {
                       </div>
                     ))
                   ) : (
-                    Array.from({ length: 4 }).map((_, index) => (
+                    Array.from({ length: 4 }).map((_, cellIndex) => (
                       <div
-                        key={index}
-                        className="rounded-2xl bg-gradient-to-br from-white/16 to-white/6"
+                        key={cellIndex}
+                        className="rounded-[var(--radius-md)] bg-[var(--accent-soft)]"
                       />
                     ))
                   )}
                 </div>
-                <div className="absolute inset-x-3 bottom-3 rounded-2xl bg-black/28 px-3 py-2 backdrop-blur-sm">
+                <div className="absolute inset-x-3 bottom-3 rounded-[var(--radius-md)] bg-black/35 px-3 py-2 backdrop-blur-sm">
                   <p className="text-sm font-bold text-white">
-                    {folder.isPinned ? "Сохранённое" : folder.name}
+                    {folder.isPinned ? t("favoritesSaved") : folder.name}
                   </p>
-                  <p className="mt-0.5 text-xs text-white/65">{total} фото</p>
+                  <p className="mt-0.5 text-xs text-white/75">
+                    {t("favoritesPhotos", { count: total })}
+                  </p>
                 </div>
               </button>
 
@@ -172,24 +183,24 @@ export default function FavoritesPage() {
                       setEditingId(folder.id);
                       setEditName(folder.name);
                     }}
-                    className="pointer-events-auto rounded-xl bg-black/25 p-2 active:scale-95"
-                    aria-label="Переименовать папку"
+                    className="pointer-events-auto angle-btn-icon p-2"
+                    aria-label={t("favoritesRenameFolder")}
                   >
-                    <Pencil size={14} className="text-white/75" />
+                    <Pencil size={14} />
                   </button>
                   <button
                     type="button"
                     onClick={() => {
                       deleteFolder(folder.id);
                     }}
-                    className="pointer-events-auto rounded-xl bg-black/25 p-2 active:scale-95"
-                    aria-label="Удалить папку"
+                    className="pointer-events-auto angle-btn-icon p-2 text-[var(--accent-danger)]"
+                    aria-label={t("favoritesDeleteFolder")}
                   >
-                    <Trash2 size={14} className="text-[#ff9898]" />
+                    <Trash2 size={14} />
                   </button>
                 </div>
               ) : null}
-            </div>
+            </motion.div>
           ))}
         </div>
       ) : (
@@ -201,16 +212,18 @@ export default function FavoritesPage() {
                 setActiveFolder(null);
                 setMenuPoseId(null);
               }}
-              className="rounded-2xl border border-white/15 bg-white/10 p-3 active:scale-95"
-              aria-label="Назад к папкам"
+              className="angle-btn-icon p-3"
+              aria-label={t("favoritesBackFolders")}
             >
-              <ArrowLeft size={18} className="text-white" />
+              <ArrowLeft size={18} />
             </button>
             <div>
-              <h2 className="text-[22px] font-bold text-white">
-                {activeFolderMeta?.isPinned ? "Сохранённое" : activeFolderMeta?.name}
+              <h2 className="text-[22px] font-bold">
+                {activeFolderMeta?.isPinned ? t("favoritesSaved") : activeFolderMeta?.name}
               </h2>
-              <p className="mt-1 text-sm text-white/55">{activePoses.length} фото</p>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                {t("favoritesPhotos", { count: activePoses.length })}
+              </p>
             </div>
           </div>
 
@@ -230,7 +243,9 @@ export default function FavoritesPage() {
 
       {editingId ? (
         <GlassCard className="mb-4" padding="md">
-          <p className="mb-2 text-sm font-semibold text-white/70">Название папки</p>
+          <p className="mb-2 text-sm font-semibold text-[var(--text-secondary)]">
+            {t("favoritesFolderName")}
+          </p>
           <input
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
@@ -243,16 +258,16 @@ export default function FavoritesPage() {
                 setEditName("");
               }
             }}
-            className="w-full rounded-2xl border border-white/20 bg-black/20 px-3 py-3 text-sm text-white outline-none"
+            className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-input)] px-3 py-3 text-sm outline-none"
             autoFocus
           />
           <div className="mt-3 flex gap-2">
             <button
               type="button"
               onClick={() => saveFolderName(editingId)}
-              className="flex-1 rounded-2xl bg-[#B8956B] py-3 text-sm font-bold text-white"
+              className="angle-btn-primary flex-1 py-3 text-sm"
             >
-              Сохранить
+              {t("commonSave")}
             </button>
             <button
               type="button"
@@ -260,61 +275,52 @@ export default function FavoritesPage() {
                 setEditingId(null);
                 setEditName("");
               }}
-              className="flex-1 rounded-2xl border border-white/15 bg-white/8 py-3 text-sm font-bold text-white"
+              className="angle-btn-secondary flex-1 py-3 text-sm"
             >
-              Отмена
+              {t("commonCancel")}
             </button>
           </div>
         </GlassCard>
       ) : null}
 
-      {menuPose && activeFolder ? (
-        <div
-          className="fixed inset-0 z-40 flex items-end bg-black/45 px-4 pb-4 pt-10 backdrop-blur-sm"
-          onClick={() => setMenuPoseId(null)}
-        >
-          <div
-            className="safe-bottom mx-auto w-full max-w-lg rounded-[28px] border border-white/12 bg-[#4A382C]/96 p-4 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-white/20" />
-            <p className="mb-1 text-center text-base font-bold text-white">
-              {menuPose.title}
-            </p>
-            <p className="mb-4 text-center text-sm text-white/50">
-              Выберите действие для этой фотографии
+      <MotionSheet open={Boolean(menuPose && activeFolder)} onClose={() => setMenuPoseId(null)}>
+        {menuPose ? (
+          <>
+            <p className="mb-1 text-center text-base font-bold">{menuPose.title}</p>
+            <p className="mb-4 text-center text-sm text-[var(--text-secondary)]">
+              {t("favoritesChooseAction")}
             </p>
             <div className="space-y-2">
               <button
                 type="button"
                 onClick={() => {
-                  void sharePose(menuPose);
+                  sharePoseAction(menuPose);
                   setMenuPoseId(null);
                 }}
-                className="flex w-full items-center gap-3 rounded-2xl border border-white/12 bg-white/10 px-4 py-3.5 text-left text-sm font-bold text-white"
+                className="angle-btn-secondary flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-bold"
               >
                 <Share2 size={18} />
-                <span>Поделиться</span>
+                <span>{t("favoritesShare")}</span>
               </button>
               <button
                 type="button"
                 onClick={() => removeFromActiveFolder(menuPose.id)}
-                className="flex w-full items-center gap-3 rounded-2xl bg-[#A95555] px-4 py-3.5 text-left text-sm font-bold text-white"
+                className="flex w-full items-center gap-3 rounded-[var(--radius-md)] bg-[var(--accent-danger)] px-4 py-3.5 text-left text-sm font-bold text-white"
               >
                 <Trash2 size={18} />
-                <span>Удалить из папки</span>
+                <span>{t("favoritesRemoveFromFolder")}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setMenuPoseId(null)}
-                className="flex w-full items-center justify-center rounded-2xl border border-white/12 bg-white/6 py-3.5 text-sm font-bold text-white/85"
+                className="angle-btn-secondary w-full py-3.5 text-sm font-bold"
               >
-                Отмена
+                {t("commonCancel")}
               </button>
             </div>
-          </div>
-        </div>
-      ) : null}
+          </>
+        ) : null}
+      </MotionSheet>
     </>
   );
 }
