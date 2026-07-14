@@ -59,22 +59,23 @@ export default function FavoritesPage() {
     () =>
       sortedFolders.map((folder) => {
         const folderPoseIds = getFolderItems(folder.id);
-        const previewPoses = folderPoseIds
+        const resolvedPoses = folderPoseIds
           .map((poseId) => poseMap.get(poseId))
-          .filter((pose): pose is Pose => Boolean(pose))
-          .slice(0, 4);
+          .filter((pose): pose is Pose => Boolean(pose));
 
         return {
           folder,
-          total: folderPoseIds.length,
-          previewPoses,
+          total: resolvedPoses.length,
+          previewPoses: resolvedPoses.slice(0, 4),
         };
       }),
     [sortedFolders, getFolderItems, poseMap]
   );
 
   const activePoseIds = activeFolder ? getFolderItems(activeFolder) : [];
-  const activePoses = poses.filter((p) => activePoseIds.includes(p.id));
+  const activePoses = activePoseIds
+    .map((poseId) => poseMap.get(poseId))
+    .filter((pose): pose is Pose => Boolean(pose));
   const activeFolderMeta = activeFolder
     ? folders.find((folder) => folder.id === activeFolder) ?? null
     : null;

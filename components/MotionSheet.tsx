@@ -10,9 +10,16 @@ type MotionSheetProps = {
   onClose: () => void;
   children: ReactNode;
   className?: string;
+  opaque?: boolean;
 };
 
-export function MotionSheet({ open, onClose, children, className = "" }: MotionSheetProps) {
+export function MotionSheet({
+  open,
+  onClose,
+  children,
+  className = "",
+  opaque = false,
+}: MotionSheetProps) {
   const { t } = useTranslation();
 
   return (
@@ -34,7 +41,7 @@ export function MotionSheet({ open, onClose, children, className = "" }: MotionS
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 28, stiffness: 320 }}
-            className={`angle-sheet safe-bottom p-4 ${className}`}
+            className={`angle-sheet safe-bottom p-4 ${opaque ? "angle-sheet--opaque" : ""} ${className}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="angle-sheet-handle" />

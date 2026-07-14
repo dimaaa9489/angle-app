@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
-import { Check, FolderPlus, Heart, MapPin, Share2, Sparkles, Users } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Check, FolderPlus, Heart, MapPin, Share2, Sparkles, Users } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { GlassCard } from "@/components/GlassCard";
@@ -11,6 +11,7 @@ import { MotionSheet } from "@/components/MotionSheet";
 import { getFilterLabel } from "@/lib/filters";
 import { fetchPoseById } from "@/lib/poses";
 import { sharePose } from "@/lib/share-pose";
+import { getReturnPath } from "@/lib/scroll-restore";
 import { useDynamicBackground } from "@/hooks/useDynamicBackground";
 import { useTranslation } from "@/hooks/useTranslation";
 import type { Pose } from "@/lib/types";
@@ -18,6 +19,7 @@ import { SAVED_FOLDER_ID, useFavoritesStore } from "@/stores/useFavoritesStore";
 
 function PoseDetailInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { t, language } = useTranslation();
   const id = searchParams.get("id");
   const [pose, setPose] = useState<Pose | null>(null);
@@ -96,8 +98,21 @@ function PoseDetailInner() {
     setFoldersOpen(false);
   };
 
+  const goBack = () => {
+    router.push(getReturnPath() ?? "/");
+  };
+
   return (
     <>
+      <button
+        type="button"
+        onClick={goBack}
+        className="angle-btn-icon mb-3 inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold"
+      >
+        <ArrowLeft size={18} />
+        {t("commonBack")}
+      </button>
+
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -184,7 +199,7 @@ function PoseDetailInner() {
         </div>
       </motion.div>
 
-      <MotionSheet open={foldersOpen} onClose={() => setFoldersOpen(false)}>
+      <MotionSheet opaque open={foldersOpen} onClose={() => setFoldersOpen(false)}>
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="text-base font-bold">{t("poseFolderTitle")}</p>

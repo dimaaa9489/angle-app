@@ -7,10 +7,12 @@ import { useAuth, getGreeting } from "@/components/AuthProvider";
 import { PoseFeedGrid } from "@/components/PoseFeedGrid";
 import { SearchBar } from "@/components/SearchBar";
 import { useHomeHeaderScroll } from "@/hooks/useHomeHeaderScroll";
+import { useScrollRestore } from "@/hooks/useScrollRestore";
 import { mergeUniquePoses } from "@/lib/pose-feed-layout";
 import { fetchHomePosesPool } from "@/lib/poses";
 import type { Pose } from "@/lib/types";
 import { useFilterStore } from "@/stores/useFilterStore";
+import { useHomeFeedStore } from "@/stores/useHomeFeedStore";
 import { useTranslation } from "@/hooks/useTranslation";
 
 const PAGE_SIZE = 12;
@@ -67,19 +69,32 @@ export function HomeContent() {
   const { t, language } = useTranslation();
   const router = useRouter();
   const query = useFilterStore((s) => s.filters.query);
+  const initialFeedRef = useRef(useHomeFeedStore.getState());
   const headerRef = useRef<HTMLDivElement>(null);
   const headerInnerRef = useRef<HTMLDivElement>(null);
   const headerScrolled = useHomeHeaderScroll(headerRef);
   const [headerSpacer, setHeaderSpacer] = useState(HEADER_SPACER_FALLBACK);
 
-  const [poses, setPoses] = useState<Pose[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [poses, setPoses] = useState<Pose[]>(() => initialFeedRef.current.poses);
+  const [loading, setLoading] = useState(() => !initialFeedRef.current.initialized);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const shownIdsRef = useRef(new Set<string>());
-  const hasMoreRef = useRef(true);
+  const [hasMore, setHasMore] = useState(() => initialFeedRef.current.hasMore);
+  const shownIdsRef = useRef(new Set<string>(initialFeedRef.current.shownIds));
+  const hasMoreRef = useRef(initialFeedRef.current.hasMore);
   const loadingMoreRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const restoredFeedRef = useRef(initialFeedRef.current.initialized);
+
+  useScrollRestore("/", !loading);
+
+  useEffect(() => {
+    useHomeFeedStore.getState().setFeedSnapshot({
+      poses,
+      shownIds: [...shownIdsRef.current],
+      hasMore,
+      initialized: true,
+    });
+  }, [poses, hasMore]);
 
   useLayoutEffect(() => {
     const outer = headerRef.current;
@@ -129,14 +144,14 @@ export function HomeContent() {
         shownIdsRef.current
       );
 
+      const nextHasMore = more && batch.length > 0;
+      hasMoreRef.current = nextHasMore;
+      setHasMore(nextHasMore);
+
       if (batch.length) {
         batch.forEach((pose) => shownIdsRef.current.add(pose.id));
         setPoses((current) => mergeUniquePoses(current, batch));
       }
-
-      const nextHasMore = more && batch.length > 0;
-      hasMoreRef.current = nextHasMore;
-      setHasMore(nextHasMore);
     } finally {
       loadingMoreRef.current = false;
       setLoadingMore(false);
@@ -145,6 +160,10 @@ export function HomeContent() {
   }, []);
 
   useEffect(() => {
+    if (restoredFeedRef.current) {
+      setLoading(false);
+      return;
+    }
     void loadMore();
   }, [loadMore]);
 

@@ -23,6 +23,7 @@ export type UiMessages = {
   commonSave: string;
   commonCancel: string;
   commonClose: string;
+  commonBack: string;
   commonNothingFound: string;
   commonNothingFoundHint: string;
   profileTitle: string;
@@ -87,6 +88,7 @@ const EN: UiMessages = {
   commonSave: "Save",
   commonCancel: "Cancel",
   commonClose: "Close",
+  commonBack: "Back",
   commonNothingFound: "Nothing found",
   commonNothingFoundHint: "Change filters or search query",
   profileTitle: "Profile",
@@ -151,6 +153,7 @@ const RU: UiMessages = {
   commonSave: "Сохранить",
   commonCancel: "Отмена",
   commonClose: "Закрыть",
+  commonBack: "Назад",
   commonNothingFound: "Ничего не найдено",
   commonNothingFoundHint: "Измените фильтры или поисковый запрос",
   profileTitle: "Профиль",

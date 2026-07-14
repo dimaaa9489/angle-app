@@ -37,6 +37,22 @@ function uid() {
   return `folder-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function dedupeItems(items: FavoriteItem[]): FavoriteItem[] {
+  const map = new Map<string, FavoriteItem>();
+  for (const item of items) {
+    const key = `${item.poseId}::${item.folderId}`;
+    const existing = map.get(key);
+    if (!existing || item.savedAt > existing.savedAt) {
+      map.set(key, item);
+    }
+  }
+  return [...map.values()];
+}
+
+function normalizeItems(items: FavoriteItem[]): FavoriteItem[] {
+  return dedupeItems(items);
+}
+
 function ensureSavedFolder(folders: FavoriteFolder[]) {
   if (folders.some((folder) => folder.id === SAVED_FOLDER_ID)) {
     return folders;
@@ -77,11 +93,14 @@ export const useFavoritesStore = create<FavoritesState>()(
       items: [],
 
       ensureDefaults: () => {
-        const { folders } = get();
-        if (!folders.some((f) => f.id === SAVED_FOLDER_ID)) {
-          set({
-            folders: ensureSavedFolder(folders),
-          });
+        const { folders, items } = get();
+        const nextFolders = ensureSavedFolder(folders);
+        const nextItems = normalizeItems(items);
+        if (
+          nextItems.length !== items.length ||
+          !folders.some((f) => f.id === SAVED_FOLDER_ID)
+        ) {
+          set({ folders: nextFolders, items: nextItems });
         }
       },
 
@@ -93,8 +112,11 @@ export const useFavoritesStore = create<FavoritesState>()(
           };
           const remoteSnapshot = await fetchCloudFavorites(userId);
           const merged = mergeFavoritesSnapshots(localSnapshot, remoteSnapshot);
-          set(merged);
-          await saveCloudFavorites(userId, merged.folders, merged.items);
+          set({
+            folders: merged.folders,
+            items: normalizeItems(merged.items),
+          });
+          await saveCloudFavorites(userId, merged.folders, normalizeItems(merged.items));
         } catch (error) {
           console.warn("[favorites] cloud hydrate skipped:", error);
         }
@@ -153,14 +175,14 @@ export const useFavoritesStore = create<FavoritesState>()(
           set({ items: nextItems });
           void syncCloudSnapshot(nextFolders, nextItems);
         } else {
-          const nextItems = [
+          const nextItems = normalizeItems([
             ...get().items,
             {
               poseId,
               folderId: SAVED_FOLDER_ID,
               savedAt: new Date().toISOString(),
             },
-          ];
+          ]);
           set({ items: nextItems });
           void syncCloudSnapshot(nextFolders, nextItems);
         }
@@ -181,19 +203,25 @@ export const useFavoritesStore = create<FavoritesState>()(
           set({ items: nextItems });
           void syncCloudSnapshot(nextFolders, nextItems);
         } else {
-          const nextItems = [
+          const nextItems = normalizeItems([
             ...get().items,
             { poseId, folderId, savedAt: new Date().toISOString() },
-          ];
+          ]);
           set({ items: nextItems });
           void syncCloudSnapshot(nextFolders, nextItems);
         }
       },
 
-      getFolderItems: (folderId) =>
-        get()
-          .items.filter((i) => i.folderId === folderId)
-          .map((i) => i.poseId),
+      getFolderItems: (folderId) => {
+        const seen = new Set<string>();
+        const poseIds: string[] = [];
+        for (const item of get().items) {
+          if (item.folderId !== folderId || seen.has(item.poseId)) continue;
+          seen.add(item.poseId);
+          poseIds.push(item.poseId);
+        }
+        return poseIds;
+      },
 
       getPoseFolderIds: (poseId) =>
         get()
@@ -203,20 +231,27 @@ export const useFavoritesStore = create<FavoritesState>()(
       setPoseFolders: (poseId, folderIds) => {
         const normalizedFolderIds = Array.from(new Set(folderIds));
         const nextFolders = get().folders;
-        const nextItems = [
+        const nextItems = normalizeItems([
           ...get().items.filter((i) => i.poseId !== poseId),
           ...normalizedFolderIds.map((folderId) => ({
             poseId,
             folderId,
             savedAt: new Date().toISOString(),
           })),
-        ];
+        ]);
 
         set({ items: nextItems });
         void syncCloudSnapshot(nextFolders, nextItems);
       },
     }),
-    { name: "angle-favorites" }
+    {
+      name: "angle-favorites",
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        state.items = normalizeItems(state.items);
+        state.folders = ensureSavedFolder(state.folders);
+      },
+    }
   )
 );
 

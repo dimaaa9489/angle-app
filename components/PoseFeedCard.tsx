@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { getFeedImageSrc } from "@/lib/feed-image";
 import { extractDominantColorFromProxy } from "@/lib/dominant-color";
@@ -10,6 +11,7 @@ import {
   POSE_FEED_HEIGHT,
   type PoseFeedAspect,
 } from "@/lib/pose-feed-layout";
+import { markReturnPath, saveScrollForPath } from "@/lib/scroll-restore";
 import type { Pose } from "@/lib/types";
 
 type PoseFeedCardProps = {
@@ -25,6 +27,7 @@ export const PoseFeedCard = memo(function PoseFeedCard({
   priority = false,
   enableDynamicBg = false,
 }: PoseFeedCardProps) {
+  const pathname = usePathname();
   const src = getFeedImageSrc(pose.imageUrl);
   const cardRef = useRef<HTMLAnchorElement>(null);
   const cardId = useId();
@@ -76,7 +79,15 @@ export const PoseFeedCard = memo(function PoseFeedCard({
   }, [cardId, cardRgb, enableDynamicBg]);
 
   return (
-    <Link ref={cardRef} href={`/pose?id=${pose.id}`} className="block">
+    <Link
+      ref={cardRef}
+      href={`/pose?id=${pose.id}`}
+      className="block"
+      onClick={() => {
+        markReturnPath(pathname);
+        saveScrollForPath(pathname);
+      }}
+    >
       <div
         className={`angle-popular-card relative overflow-hidden ${POSE_FEED_HEIGHT[aspect]}`}
       >
