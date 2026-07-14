@@ -69,6 +69,7 @@ export const SEARCH_WORD_ALIASES: Record<string, string[]> = {
   mariage: ["wedding", "свадьба", "boda"],
 };
 
+import { DICTIONARY_ALIAS_CLUSTERS } from "@/lib/i18n/search-dictionary";
 import { getFilterLabelAliasGroups } from "@/lib/i18n/filter-label-clusters";
 
 export function normalizeSearchText(text: string): string {
@@ -80,6 +81,26 @@ export function normalizeSearchText(text: string): string {
     .replace(/[''`]/g, "'")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Whole-word / whole-phrase match — avoids "дома" ⊂ "домашний". */
+export function textContainsWord(text: string, word: string): boolean {
+  if (!word) return false;
+  if (word === "1" || word === "2" || word === "3+") {
+    return ` ${text} `.includes(` ${word} `);
+  }
+  if (word.length < 3) return false;
+  if (text === word) return true;
+  return ` ${text} `.includes(` ${word} `);
+}
+
+export function textContainsPhrase(text: string, phrase: string): boolean {
+  if (!phrase) return false;
+  if (phrase.includes(" ")) {
+    if (phrase.length < 3) return false;
+    return text === phrase || ` ${text} `.includes(` ${phrase} `);
+  }
+  return textContainsWord(text, phrase);
 }
 
 function buildAliasClusters(): Map<string, Set<string>> {
@@ -107,6 +128,10 @@ function buildAliasClusters(): Map<string, Set<string>> {
 
   for (const group of getFilterLabelAliasGroups()) {
     mergeGroup(group);
+  }
+
+  for (const [member, siblings] of DICTIONARY_ALIAS_CLUSTERS) {
+    mergeGroup(new Set([member, ...siblings]));
   }
 
   return clusters;

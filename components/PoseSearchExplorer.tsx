@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { GlassCard } from "@/components/GlassCard";
@@ -8,35 +8,63 @@ import { PoseFeedGrid } from "@/components/PoseFeedGrid";
 import { PoseFilterPanel } from "@/components/PoseFilterPanel";
 import { SearchPanel } from "@/components/SearchPanel";
 import { EMPTY_FILTERS } from "@/lib/filters";
-import { balanceCategoryFilterResults, countActiveFilters, filterPoses, preparePoseSearchIndex } from "@/lib/pose-utils";
-import { fetchPoses } from "@/lib/poses";
+import { countActiveFilters } from "@/lib/pose-utils";
 import type { Pose, PoseFilters } from "@/lib/types";
 import { useFilterStore } from "@/stores/useFilterStore";
 import { useScrollRestore } from "@/hooks/useScrollRestore";
-import { useSearchQueryVariants } from "@/hooks/useSearchQueryVariants";
+import { useServerSearchResults } from "@/hooks/useServerSearchResults";
 import { useTranslation } from "@/hooks/useTranslation";
 
-const SEARCH_RESULT_LIMIT = 48;
+const SEARCH_PAGE_SIZE = 24;
 
 const SearchResults = memo(function SearchResults({
   poses,
   totalMatches,
   loading,
+  loadingMore,
+  hasMore,
   pending,
+  error,
+  sentinelRef,
   loadingLabel,
+  loadingMoreLabel,
   foundLabel,
+  errorLabel,
+  onRetry,
 }: {
   poses: Pose[];
   totalMatches: number;
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
   pending?: boolean;
+  error: string | null;
+  sentinelRef: React.RefObject<HTMLDivElement | null>;
   loadingLabel: string;
+  loadingMoreLabel: string;
   foundLabel: string;
+  errorLabel: string;
+  onRetry: () => void;
 }) {
-  if (loading) {
+  if (loading && poses.length === 0) {
     return (
       <GlassCard padding="md" className="text-center text-sm text-[var(--text-secondary)]">
         {loadingLabel}
+      </GlassCard>
+    );
+  }
+
+  if (error && poses.length === 0) {
+    return (
+      <GlassCard padding="md" className="text-center text-sm text-[var(--text-secondary)]">
+        <p>{errorLabel}</p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-3 text-xs font-semibold text-[var(--accent)]"
+        >
+          ↻
+        </button>
       </GlassCard>
     );
   }
@@ -49,6 +77,15 @@ const SearchResults = memo(function SearchResults({
       <div className={pending ? "opacity-60 transition-opacity duration-150" : "transition-opacity duration-150"}>
         <PoseFeedGrid poses={poses} enableDynamicBg />
       </div>
+      <div ref={sentinelRef} className="h-6" aria-hidden />
+      {loadingMore ? (
+        <p className="pb-6 text-center text-sm text-[var(--text-secondary)]">{loadingMoreLabel}</p>
+      ) : null}
+      {!hasMore && poses.length > 0 && totalMatches > poses.length ? (
+        <p className="pb-8 text-center text-xs text-[var(--text-tertiary)]">
+          {foundLabel}
+        </p>
+      ) : null}
     </>
   );
 });
@@ -56,27 +93,26 @@ const SearchResults = memo(function SearchResults({
 export function PoseSearchExplorer() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
-  const [poses, setPoses] = useState<Pose[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(
     () => searchParams.get("filters") === "open"
   );
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const filters = useFilterStore((s) => s.filters);
   const setFilters = useFilterStore((s) => s.setFilters);
   const resetFilters = useFilterStore((s) => s.resetFilters);
-  const deferredQuery = useDeferredValue(filters.query);
-  const { variants: queryVariants, pending: translationPending } = useSearchQueryVariants(
-    filters.query
-  );
 
-  useEffect(() => {
-    void fetchPoses().then((data) => {
-      setPoses(data);
-      preparePoseSearchIndex(data);
-      setLoading(false);
-    });
-  }, []);
+  const {
+    poses,
+    totalMatches,
+    hasMore,
+    pending,
+    loading,
+    loadingMore,
+    error,
+    loadMore,
+    retry,
+  } = useServerSearchResults(filters, SEARCH_PAGE_SIZE);
 
   useEffect(() => {
     const q = searchParams.get("q") ?? "";
@@ -96,32 +132,25 @@ export function PoseSearchExplorer() {
     setFilters(next);
   }, [searchParams, setFilters]);
 
-  const filtersForSearch = useMemo(
-    () => ({ ...filters, query: deferredQuery }),
-    [filters, deferredQuery]
-  );
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !hasMore || loading) return;
 
-  const { filtered, totalMatches } = useMemo(() => {
-    const matches = balanceCategoryFilterResults(
-      filterPoses(poses, filtersForSearch, queryVariants),
-      filtersForSearch
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMore();
+      },
+      { rootMargin: "180px 0px", threshold: 0 }
     );
-    return {
-      filtered: matches.slice(0, SEARCH_RESULT_LIMIT),
-      totalMatches: matches.length,
-    };
-  }, [poses, filtersForSearch, queryVariants]);
 
-  const isSearchPending =
-    filters.query !== deferredQuery || (translationPending && Boolean(deferredQuery.trim()));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore, loading, poses.length]);
 
   useScrollRestore("/search", !loading);
 
   const activeCount = countActiveFilters(filters);
-  const foundLabel =
-    totalMatches > SEARCH_RESULT_LIMIT
-      ? t("searchFoundLimited", { count: totalMatches, limit: SEARCH_RESULT_LIMIT })
-      : t("searchFound", { count: totalMatches });
+  const foundLabel = t("searchFound", { count: totalMatches });
 
   return (
     <>
@@ -154,12 +183,19 @@ export function PoseSearchExplorer() {
       </GlassCard>
 
       <SearchResults
-        poses={filtered}
+        poses={poses}
         totalMatches={totalMatches}
         loading={loading}
-        pending={isSearchPending}
+        loadingMore={loadingMore}
+        hasMore={hasMore}
+        pending={pending}
+        error={error}
+        sentinelRef={sentinelRef}
         loadingLabel={t("searchLoading")}
+        loadingMoreLabel={t("homeFeedLoadingMore")}
         foundLabel={foundLabel}
+        errorLabel={t("searchLoading")}
+        onRetry={retry}
       />
     </>
   );

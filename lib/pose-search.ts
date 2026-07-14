@@ -1,12 +1,16 @@
-import {
-  getAllFilterIds,
-  getAllLabelsForFilterId,
-  getFilterGroupKeyForId,
-} from "@/lib/i18n/filter-labels";
-import { expandQueryVariants, expandTextToSearchKeywords } from "@/lib/i18n/search-expansion";
+import { expandQueryVariants } from "@/lib/i18n/search-expansion";
 import { getSynonymFiltersForToken } from "@/lib/i18n/search-synonyms";
-import { normalizeSearchText } from "@/lib/i18n/search-words";
+import {
+  conceptToImpliedFilters,
+  getConceptNormalizedTerms,
+  resolveSearchConcept,
+  type SearchConceptDef,
+} from "@/lib/i18n/search-vocabulary";
+import { expandTextForSearch, normalizeSearchText, textContainsPhrase, textContainsWord } from "@/lib/i18n/search-words";
 import type { Pose, PoseFilterSelection } from "@/lib/types";
+import { getAllLabelsForFilterId } from "@/lib/i18n/filter-labels";
+
+const haystackByPoseId = new Map<string, string>();
 
 function poseTagIds(pose: Pose): string[] {
   return [
@@ -19,22 +23,13 @@ function poseTagIds(pose: Pose): string[] {
   ];
 }
 
-const haystackByPoseId = new Map<string, string>();
-
-/** Pre-built index string; keywords are already enriched at publish time. */
+/** Title, publish-time keywords, and tag ids — no 18-language label explosion. */
 export function getPoseSearchHaystack(pose: Pose): string {
   const cached = haystackByPoseId.get(pose.id);
   if (cached) return cached;
 
-  const parts: string[] = [pose.title, ...pose.keywords];
-  for (const expanded of expandTextToSearchKeywords(pose.title)) {
-    parts.push(expanded);
-  }
-  for (const id of poseTagIds(pose)) {
-    parts.push(id, id.replace(/-/g, " "), ...getAllLabelsForFilterId(id));
-  }
-
-  const haystack = normalizeSearchText(parts.join(" "));
+  const tagParts = poseTagIds(pose).flatMap((id) => [id, id.replace(/-/g, " ")]);
+  const haystack = normalizeSearchText([pose.title, ...pose.keywords, ...tagParts].join(" "));
   haystackByPoseId.set(pose.id, haystack);
   return haystack;
 }
@@ -47,7 +42,6 @@ export function clearPoseSearchHaystackCache() {
   haystackByPoseId.clear();
 }
 
-/** @deprecated Use getPoseSearchHaystack — kept for callers that still import the old name. */
 export function buildPoseSearchHaystack(pose: Pose): string {
   return getPoseSearchHaystack(pose);
 }
@@ -85,16 +79,10 @@ function addImplied(implied: ImpliedFilters, group: keyof ImpliedFilters, id: st
   if (!implied[group].includes(id)) implied[group].push(id);
 }
 
-function mergeImplied(target: ImpliedFilters, source: ImpliedFilters) {
-  for (const key of Object.keys(target) as (keyof ImpliedFilters)[]) {
-    for (const id of source[key]) addImplied(target, key, id);
-  }
-}
-
 function impliedFromSynonyms(query: string): ImpliedFilters {
   const implied = emptyImplied();
   const normalized = normalizeSearchText(query);
-  const tokens = normalized.split(/\s+/).filter(Boolean);
+  const tokens = normalized.split(/\s+/).filter((token) => token.length > 2);
 
   for (const token of [normalized, ...tokens]) {
     const synonym = getSynonymFiltersForToken(token);
@@ -107,58 +95,20 @@ function impliedFromSynonyms(query: string): ImpliedFilters {
   return implied;
 }
 
-function labelPhraseMatches(phrase: string, label: string): boolean {
-  if (phrase === label) return true;
-  if (phrase.length >= 3 && label.includes(phrase)) return true;
-
-  return label.split(/\s+/).some((word) => word === phrase);
-}
-
-export function getImpliedFiltersFromQuery(query: string): ImpliedFilters {
-  const normalized = normalizeSearchText(query);
-  const implied = emptyImplied();
-  if (!normalized) return implied;
-
-  const tokens = normalized.split(/\s+/).filter((token) => token.length > 2);
-  const phrases = [normalized, ...tokens];
-
-  for (const id of getAllFilterIds()) {
-    const labels = getAllLabelsForFilterId(id).map(normalizeSearchText);
-    const group = getFilterGroupKeyForId(id);
-    if (!group) continue;
-
-    const idNorm = normalizeSearchText(id);
-    const idSpaced = normalizeSearchText(id.replace(/-/g, " "));
-
-    for (const phrase of phrases) {
-      const matches =
-        phrase === idNorm ||
-        phrase === idSpaced ||
-        labels.some((label) => labelPhraseMatches(phrase, label));
-
-      if (matches) addImplied(implied, group, id);
-    }
-  }
-
-  mergeImplied(implied, impliedFromSynonyms(normalized));
-
-  return implied;
-}
-
 type QueryAnalysis = {
   normalized: string;
   variants: string[];
-  implied: ImpliedFilters;
+  tokenVariants: string[];
   synonymImplied: ImpliedFilters;
-  tokenImplied: ImpliedFilters[];
+  concept: SearchConceptDef | null;
 };
 
 const EMPTY_ANALYSIS: QueryAnalysis = {
   normalized: "",
   variants: [],
-  implied: EMPTY_IMPLIED,
+  tokenVariants: [],
   synonymImplied: EMPTY_IMPLIED,
-  tokenImplied: [],
+  concept: null,
 };
 
 const queryAnalysisCache = new Map<string, QueryAnalysis>();
@@ -167,23 +117,42 @@ export function clearSearchQueryAnalysisCache() {
   queryAnalysisCache.clear();
 }
 
+function isUsefulSearchToken(token: string): boolean {
+  if (token.length >= 3) return true;
+  return token === "1" || token === "2" || token === "3+";
+}
+
+function buildTokenVariants(normalized: string): string[] {
+  const tokens = normalized.split(/\s+/).filter((token) => token.length > 2);
+  const variants = new Set<string>();
+
+  for (const token of tokens) {
+    variants.add(token);
+    for (const variant of expandTextForSearch(token)) {
+      if (isUsefulSearchToken(variant)) variants.add(variant);
+    }
+  }
+
+  return [...variants];
+}
+
 export function analyzeSearchQuery(query: string): QueryAnalysis {
   const normalized = normalizeSearchText(query);
   if (!normalized) return EMPTY_ANALYSIS;
 
+  if (queryAnalysisCache.size > 128) queryAnalysisCache.clear();
+
   const cached = queryAnalysisCache.get(normalized);
   if (cached) return cached;
 
-  const tokens = normalized.split(/\s+/).filter((token) => token.length > 2);
   const analysis: QueryAnalysis = {
     normalized,
     variants: expandQueryVariants(normalized),
-    implied: getImpliedFiltersFromQuery(normalized),
+    tokenVariants: buildTokenVariants(normalized),
     synonymImplied: impliedFromSynonyms(normalized),
-    tokenImplied: tokens.map((token) => getImpliedFiltersFromQuery(token)),
+    concept: resolveSearchConcept(normalized),
   };
 
-  if (queryAnalysisCache.size > 128) queryAnalysisCache.clear();
   queryAnalysisCache.set(normalized, analysis);
   return analysis;
 }
@@ -233,77 +202,67 @@ function poseMatchesImpliedFilters(pose: Pose, implied: ImpliedFilters): boolean
   return true;
 }
 
-function isUsefulSearchToken(token: string): boolean {
-  if (token.length >= 3) return true;
-  return token === "1" || token === "2" || token === "3+";
+function getPoseTextHaystack(pose: Pose): string {
+  return normalizeSearchText([pose.title, ...pose.keywords].join(" "));
 }
 
-function haystackMatchesAnalysis(
-  haystack: string,
-  analysis: QueryAnalysis,
-  extraVariants: string[] = []
-): boolean {
-  if (analysis.normalized.length >= 3 && haystack.includes(analysis.normalized)) return true;
+function matchesConceptQuery(pose: Pose, concept: SearchConceptDef): boolean {
+  if (concept.filters) {
+    const implied = conceptToImpliedFilters(concept);
+    if (poseMatchesImpliedFilters(pose, implied)) return true;
+  }
 
-  const allVariants = extraVariants.length
-    ? [...new Set([...analysis.variants, ...extraVariants])]
-    : analysis.variants;
+  const textHaystack = getPoseTextHaystack(pose);
+  const terms = getConceptNormalizedTerms(concept);
 
-  for (const variant of allVariants) {
+  for (const norm of terms) {
+    if (norm.includes(" ")) {
+      if (textContainsPhrase(textHaystack, norm)) return true;
+      continue;
+    }
+    if (textContainsWord(textHaystack, norm)) return true;
+  }
+
+  return false;
+}
+
+function haystackMatchesAnalysis(haystack: string, analysis: QueryAnalysis): boolean {
+  if (textContainsPhrase(haystack, analysis.normalized)) return true;
+
+  for (const variant of analysis.variants) {
     if (
       variant !== analysis.normalized &&
       isUsefulSearchToken(variant) &&
-      haystack.includes(variant)
+      textContainsPhrase(haystack, variant)
     ) {
       return true;
     }
   }
 
   const tokens = analysis.normalized.split(/\s+/).filter((token) => token.length > 2);
-  if (tokens.length > 1 && tokens.every((token) => haystack.includes(token))) {
+  if (tokens.length > 1 && tokens.every((token) => textContainsWord(haystack, token))) {
     return true;
   }
 
-  for (const token of tokens) {
-    if (haystack.includes(token)) return true;
-    for (const variant of expandTextToSearchKeywords(token)) {
-      if (variant !== token && isUsefulSearchToken(variant) && haystack.includes(variant)) {
-        return true;
-      }
-    }
+  for (const variant of analysis.tokenVariants) {
+    if (textContainsPhrase(haystack, variant)) return true;
   }
 
   return false;
 }
 
-export function matchesTextQuery(
-  pose: Pose,
-  query: string,
-  extraVariants: string[] = []
-): boolean {
+export function matchesTextQuery(pose: Pose, query: string): boolean {
   const analysis = analyzeSearchQuery(query);
   if (!analysis.normalized) return true;
 
-  const haystack = getPoseSearchHaystack(pose);
+  if (analysis.concept) {
+    return matchesConceptQuery(pose, analysis.concept);
+  }
 
-  if (haystackMatchesAnalysis(haystack, analysis, extraVariants)) return true;
-
-  if (poseMatchesImpliedFilters(pose, analysis.implied)) return true;
   if (poseMatchesImpliedFilters(pose, analysis.synonymImplied)) return true;
 
-  for (const part of analysis.tokenImplied) {
-    if (poseMatchesImpliedFilters(pose, part)) return true;
-  }
-
-  if (analysis.tokenImplied.length > 1) {
-    const merged = emptyImplied();
-    for (const part of analysis.tokenImplied) {
-      mergeImplied(merged, part);
-    }
-    if (poseMatchesImpliedFilters(pose, merged)) return true;
-  }
-
-  return false;
+  const haystack = getPoseSearchHaystack(pose);
+  return haystackMatchesAnalysis(haystack, analysis);
 }
 
 export function buildMultilingualSearchKeywords(selection: PoseFilterSelection): string[] {

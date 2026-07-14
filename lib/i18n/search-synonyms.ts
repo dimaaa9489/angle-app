@@ -184,6 +184,22 @@ const MANUAL_SEARCH_SYNONYM_TO_FILTERS: Record<string, SynonymFilterMap> = {
   piso: { locations: ["home"] },
   casa: { locations: ["home"] },
   maison: { locations: ["home"] },
+
+  night: { locations: ["night-city"] },
+  noc: { locations: ["night-city"] },
+  nacht: { locations: ["night-city"] },
+  nuit: { locations: ["night-city"] },
+  noche: { locations: ["night-city"] },
+  notte: { locations: ["night-city"] },
+  noite: { locations: ["night-city"] },
+  gece: { locations: ["night-city"] },
+  ночь: { locations: ["night-city"] },
+  ночи: { locations: ["night-city"] },
+  ночью: { locations: ["night-city"] },
+  ночной: { locations: ["night-city"] },
+  ночная: { locations: ["night-city"] },
+  ночное: { locations: ["night-city"] },
+  ночные: { locations: ["night-city"] },
 };
 
 function buildAutoLabelSynonyms(): Record<string, SynonymFilterMap> {
@@ -207,8 +223,9 @@ function buildAutoLabelSynonyms(): Record<string, SynonymFilterMap> {
     for (const label of getAllLabelsForFilterId(id)) {
       const norm = normalizeSearchText(label);
       addToken(norm, group, id);
-      for (const word of norm.split(/\s+/)) {
-        addToken(word, group, id);
+      const words = norm.split(/\s+/).filter(Boolean);
+      if (words.length === 1) {
+        addToken(words[0]!, group, id);
       }
     }
   }

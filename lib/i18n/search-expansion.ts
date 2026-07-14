@@ -8,6 +8,43 @@ import { expandTextForSearch, normalizeSearchText } from "@/lib/i18n/search-word
 /** normalized label or token → filter ids */
 const LABEL_TO_FILTER_IDS = new Map<string, string[]>();
 
+const SEARCH_STOPWORDS = new Set([
+  "in",
+  "at",
+  "on",
+  "the",
+  "a",
+  "an",
+  "or",
+  "and",
+  "de",
+  "la",
+  "le",
+  "en",
+  "im",
+  "na",
+  "el",
+  "al",
+  "un",
+  "une",
+  "du",
+  "des",
+  "et",
+  "es",
+  "il",
+  "di",
+  "da",
+  "do",
+  "в",
+  "у",
+  "и",
+  "на",
+  "по",
+  "от",
+  "do",
+  "da",
+]);
+
 function addLabelMapping(norm: string, filterId: string) {
   if (!norm) return;
   if (norm.length < 3 && norm !== "1" && norm !== "2" && norm !== "3+") return;
@@ -21,8 +58,9 @@ function buildLabelIndex() {
     for (const label of getAllLabelsForFilterId(id)) {
       const norm = normalizeSearchText(label);
       addLabelMapping(norm, id);
-      for (const word of norm.split(/\s+/)) {
-        addLabelMapping(word, id);
+      const words = norm.split(/\s+/).filter(Boolean);
+      if (words.length === 1) {
+        addLabelMapping(words[0]!, id);
       }
     }
     addLabelMapping(normalizeSearchText(id), id);
@@ -38,7 +76,9 @@ function addFilterIdKeywords(parts: Set<string>, filterId: string) {
   for (const label of getAllLabelsForFilterId(filterId)) {
     parts.add(normalizeSearchText(label));
     for (const word of normalizeSearchText(label).split(/\s+/)) {
-      if (word.length > 1) parts.add(word);
+      if (word.length > 2 || word === "1" || word === "2" || word === "3+") {
+        parts.add(word);
+      }
     }
   }
 }
@@ -72,7 +112,14 @@ function addSynonymKeywords(parts: Set<string>, text: string) {
   }
 }
 
-/** Maximal cross-language keyword expansion for titles, queries, and stored keywords. */
+function isUsefulVariant(token: string): boolean {
+  if (!token) return false;
+  if (SEARCH_STOPWORDS.has(token)) return false;
+  if (token.length >= 3) return true;
+  return token === "1" || token === "2" || token === "3+";
+}
+
+/** Full expansion for publish-time keywords (admin / DeepL reindex). */
 export function expandTextToSearchKeywords(text: string): string[] {
   const normalized = normalizeSearchText(text);
   if (!normalized) return [];
@@ -98,19 +145,36 @@ export function expandTextToSearchKeywords(text: string): string[] {
   return [...parts].filter(Boolean);
 }
 
+/** Fast, strict expansion for live search — aliases + synonym filter ids only. */
 export function expandQueryVariants(query: string): string[] {
   const normalized = normalizeSearchText(query);
   if (!normalized) return [];
 
-  const variants = new Set<string>(expandTextToSearchKeywords(query));
-  variants.add(normalized);
+  const variants = new Set<string>([normalized]);
+
+  for (const piece of expandTextForSearch(query)) {
+    if (isUsefulVariant(piece)) variants.add(piece);
+  }
 
   const tokens = normalized.split(/\s+/).filter((token) => token.length > 2);
   for (const token of tokens) {
-    for (const expanded of expandTextToSearchKeywords(token)) {
-      variants.add(expanded);
+    for (const piece of expandTextForSearch(token)) {
+      if (isUsefulVariant(piece)) variants.add(piece);
+    }
+    const synonym = getSynonymFiltersForToken(token);
+    if (!synonym) continue;
+    for (const ids of Object.values(synonym)) {
+      for (const id of ids ?? []) {
+        variants.add(id);
+        variants.add(normalizeSearchText(id.replace(/-/g, " ")));
+      }
     }
   }
 
-  return [...variants];
+  for (const filterId of matchFilterIdsFromText(query)) {
+    variants.add(filterId);
+    variants.add(normalizeSearchText(filterId.replace(/-/g, " ")));
+  }
+
+  return [...variants].filter(isUsefulVariant);
 }

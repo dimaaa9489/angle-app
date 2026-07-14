@@ -56,6 +56,35 @@ export function shufflePoses<T>(items: T[]): T[] {
   return copy;
 }
 
+function hashSeed(text: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+/** Stable pseudo-random order for the same query + filters (no upload-date batches). */
+export function shufflePosesSeeded<T>(items: T[], seedText: string): T[] {
+  const copy = [...items];
+  let seed = hashSeed(seedText || "search");
+  const random = () => {
+    seed += 0x6d2b79f5;
+    let t = seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+
+  return copy;
+}
+
 export function mergeUniquePoses(current: Pose[], incoming: Pose[]): Pose[] {
   const seen = new Set(current.map((pose) => pose.id));
   const fresh = incoming.filter((pose) => !seen.has(pose.id));
