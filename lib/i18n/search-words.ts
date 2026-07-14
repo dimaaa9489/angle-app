@@ -36,8 +36,23 @@ export const SEARCH_WORD_ALIASES: Record<string, string[]> = {
   soft: ["мягкий", "м'який", "weich", "doux", "suave", "morbido"],
   cinematic: ["киношный", "filmisch", "cinématique", "cinematográfico"],
   natural: ["естественный", "natural", "natürlich", "naturel", "natural"],
-  home: ["дом", "интерьер", "interior", "zuhause", "intérieur"],
-  дом: ["home", "interior", "house"],
+  home: ["дом", "дома", "квартира", "интерьер", "interior", "apartment", "flat", "house", "zuhause", "intérieur"],
+  дом: ["home", "interior", "house", "apartment", "flat", "квартира", "интерьер"],
+  дома: ["home", "interior", "house", "apartment", "квартира"],
+  квартира: ["apartment", "flat", "home", "house", "interior", "дом", "интерьер", "appartement", "wohnung", "piso"],
+  apartment: ["квартира", "flat", "home", "interior", "дом", "appartement", "wohnung"],
+  flat: ["квартира", "apartment", "home", "interior", "дом"],
+  house: ["дом", "home", "interior", "квартира"],
+  interior: ["интерьер", "дом", "home", "квартира", "interior", "intérieur"],
+  интерьер: ["interior", "home", "дом", "квартира", "apartment"],
+  car: ["машина", "автомобиль", "auto", "vehicle", "automobile", "авто", "coche", "voiture", "macchina", "araba"],
+  cars: ["машина", "автомобиль", "car", "auto", "vehicle", "авто"],
+  auto: ["car", "машина", "автомобиль", "vehicle", "automobile", "авто"],
+  vehicle: ["car", "машина", "автомобиль", "auto", "automobile", "авто"],
+  automobile: ["car", "машина", "автомобиль", "auto", "vehicle", "авто"],
+  машина: ["car", "auto", "vehicle", "automobile", "cars", "автомобиль", "авто"],
+  автомобиль: ["car", "auto", "vehicle", "automobile", "машина", "авто", "cars"],
+  авто: ["car", "auto", "машина", "автомобиль", "vehicle"],
   forest: ["лес", "forêt", "bosque", "foresta", "floresta", "wald"],
   лес: ["forest", "woods", "wald"],
   mountains: ["горы", "montagnes", "montañas", "montagne", "berge"],
@@ -54,9 +69,13 @@ export const SEARCH_WORD_ALIASES: Record<string, string[]> = {
   mariage: ["wedding", "свадьба", "boda"],
 };
 
+import { getFilterLabelAliasGroups } from "@/lib/i18n/filter-label-clusters";
+
 export function normalizeSearchText(text: string): string {
   return text
     .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
     .replace(/ё/g, "е")
     .replace(/[''`]/g, "'")
     .replace(/\s+/g, " ")
@@ -66,17 +85,28 @@ export function normalizeSearchText(text: string): string {
 function buildAliasClusters(): Map<string, Set<string>> {
   const clusters = new Map<string, Set<string>>();
 
-  for (const [key, aliases] of Object.entries(SEARCH_WORD_ALIASES)) {
-    const group = new Set<string>([
-      normalizeSearchText(key),
-      ...aliases.map((alias) => normalizeSearchText(alias)),
-    ]);
-
+  const mergeGroup = (group: Set<string>) => {
     for (const member of group) {
+      if (!member || member.length < 2) continue;
       const existing = clusters.get(member) ?? new Set<string>();
-      for (const value of group) existing.add(value);
+      for (const value of group) {
+        if (value.length >= 2) existing.add(value);
+      }
       clusters.set(member, existing);
     }
+  };
+
+  for (const [key, aliases] of Object.entries(SEARCH_WORD_ALIASES)) {
+    mergeGroup(
+      new Set<string>([
+        normalizeSearchText(key),
+        ...aliases.map((alias) => normalizeSearchText(alias)),
+      ])
+    );
+  }
+
+  for (const group of getFilterLabelAliasGroups()) {
+    mergeGroup(group);
   }
 
   return clusters;

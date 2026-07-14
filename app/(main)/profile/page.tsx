@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { Crown, Globe, Moon } from "lucide-react";
+import { Crown, Globe, Moon, Shield } from "lucide-react";
 
 import { getGreeting, useAuth } from "@/components/AuthProvider";
 import { GlassCard } from "@/components/GlassCard";
@@ -29,14 +29,24 @@ function SettingRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] py-3.5 last:border-0">
-      <div className="flex items-center gap-3">
+    <div className="angle-settings-row">
+      <div className="flex min-w-0 items-center gap-2.5">
         <span className="text-[var(--text-secondary)]">{icon}</span>
-        <span className="text-[15px] font-semibold">{label}</span>
+        <span className="text-[14px] font-semibold">{label}</span>
       </div>
-      {children}
+      <div className="shrink-0">{children}</div>
     </div>
   );
+}
+
+function getInitials(firstName: string | null, email: string | undefined) {
+  if (firstName?.trim()) {
+    return firstName.trim().slice(0, 1).toUpperCase();
+  }
+  if (email?.trim()) {
+    return email.trim().slice(0, 1).toUpperCase();
+  }
+  return "?";
 }
 
 export default function ProfilePage() {
@@ -55,63 +65,72 @@ export default function ProfilePage() {
     [t]
   );
 
+  const initials = getInitials(firstName, user?.email);
+
   return (
-    <GlassCard padding="md">
-      <h1 className="text-[26px] font-bold">{t("profileTitle")}</h1>
-      <p className="mt-2 text-lg font-semibold">{getGreeting(firstName, language)}</p>
-      <p className="mt-1 text-sm text-[var(--text-secondary)]">
-        {user?.email ?? t("profileSignInHint")}
-      </p>
+    <div className="angle-ui-shell">
+      <GlassCard padding="md">
+        <div className="mb-5 flex flex-col items-center text-center">
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--accent-soft)] text-lg font-bold">
+            {initials}
+          </div>
+          <h1 className="text-[20px] font-bold">{t("profileTitle")}</h1>
+          <p className="mt-1 text-[14px] font-semibold">{getGreeting(firstName, language)}</p>
+          <p className="mt-0.5 text-[13px] text-[var(--text-secondary)]">
+            {user?.email ?? t("profileSignInHint")}
+          </p>
+        </div>
 
-      {!user ? (
-        <button
-          type="button"
-          onClick={() => void signInWithGoogle()}
-          className="angle-btn-primary mt-5 w-full py-3.5 text-[15px]"
-        >
-          {t("profileSignInGoogle")}
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => void supabase.auth.signOut()}
-          className="angle-btn-secondary mt-5 w-full py-3.5 text-[15px]"
-        >
-          {t("profileSignOut")}
-        </button>
-      )}
+        {!user ? (
+          <button
+            type="button"
+            onClick={() => void signInWithGoogle()}
+            className="angle-btn-primary mb-5 w-full py-2.5 text-[14px]"
+          >
+            {t("profileSignInGoogle")}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void supabase.auth.signOut()}
+            className="angle-btn-secondary mb-5 w-full py-2.5 text-[14px]"
+          >
+            {t("profileSignOut")}
+          </button>
+        )}
 
-      <div className="mt-6">
-        <SettingRow icon={<Moon size={18} />} label={t("profileTheme")}>
-          <SettingSelect<AppTheme>
-            ariaLabel={t("profileSelectTheme")}
-            value={theme}
-            options={themeOptions}
-            onChange={setTheme}
-          />
-        </SettingRow>
+        <div className="angle-settings-panel">
+          <SettingRow icon={<Moon size={16} />} label={t("profileTheme")}>
+            <SettingSelect<AppTheme>
+              ariaLabel={t("profileSelectTheme")}
+              value={theme}
+              options={themeOptions}
+              onChange={setTheme}
+            />
+          </SettingRow>
 
-        <SettingRow icon={<Globe size={18} />} label={t("profileLanguage")}>
-          <SettingSelect
-            ariaLabel={t("profileSelectLanguage")}
-            value={language}
-            options={LANGUAGE_OPTIONS}
-            onChange={setLanguage}
-          />
-        </SettingRow>
+          <SettingRow icon={<Globe size={16} />} label={t("profileLanguage")}>
+            <SettingSelect
+              ariaLabel={t("profileSelectLanguage")}
+              value={language}
+              options={LANGUAGE_OPTIONS}
+              onChange={setLanguage}
+            />
+          </SettingRow>
 
-        <SettingRow icon={<Crown size={18} />} label={t("profileSubscription")}>
-          <span className="text-xs font-semibold text-[var(--text-tertiary)]">
-            {t("profileSubscriptionSoon")}
-          </span>
-        </SettingRow>
+          <SettingRow icon={<Crown size={16} />} label={t("profileSubscription")}>
+            <span className="text-[11px] font-semibold text-[var(--text-tertiary)]">
+              {t("profileSubscriptionSoon")}
+            </span>
+          </SettingRow>
 
-        <SettingRow icon={<Moon size={18} />} label={t("profilePrivacy")}>
-          <Link href="/privacy" className="text-sm font-bold text-[var(--text-secondary)]">
-            {t("profileOpen")}
-          </Link>
-        </SettingRow>
-      </div>
-    </GlassCard>
+          <SettingRow icon={<Shield size={16} />} label={t("profilePrivacy")}>
+            <Link href="/privacy" className="text-[13px] font-bold text-[var(--text-secondary)]">
+              {t("profileOpen")}
+            </Link>
+          </SettingRow>
+        </div>
+      </GlassCard>
+    </div>
   );
 }

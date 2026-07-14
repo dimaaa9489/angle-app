@@ -18,7 +18,10 @@ export function PoseFilterPanel() {
         sessionTypes: filters.sessionTypes,
         styles: filters.styles,
       }}
-      onChange={(selection) => setFilters(selection)}
+      onChange={(selection) => {
+        const query = useFilterStore.getState().filters.query;
+        setFilters({ ...selection, query });
+      }}
     />
   );
 }

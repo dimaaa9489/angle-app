@@ -11,11 +11,33 @@ const ASPECT_CYCLE: PoseFeedAspect[] = [
   "short",
 ];
 
-export const POSE_FEED_HEIGHT: Record<PoseFeedAspect, string> = {
-  short: "h-[168px]",
-  medium: "h-[232px]",
-  tall: "h-[312px]",
+export const POSE_FEED_ASPECT: Record<PoseFeedAspect, string> = {
+  short: "aspect-[5/4]",
+  medium: "aspect-[4/5]",
+  tall: "aspect-[3/4]",
 };
+
+/** @deprecated Use POSE_FEED_ASPECT — fixed heights squish on wide columns. */
+export const POSE_FEED_HEIGHT: Record<PoseFeedAspect, string> = {
+  short: "aspect-[5/4]",
+  medium: "aspect-[4/5]",
+  tall: "aspect-[3/4]",
+};
+
+/** Phone layout stays 2 columns; desktop fills the viewport width. */
+export const FEED_MOBILE_MAX_WIDTH = 640;
+export const FEED_MOBILE_COLUMNS = 2;
+export const FEED_MIN_COLUMN_WIDTH = 260;
+export const FEED_MAX_COLUMNS = 12;
+
+export function getFeedColumnCount(containerWidth: number): number {
+  if (containerWidth <= FEED_MOBILE_MAX_WIDTH) return FEED_MOBILE_COLUMNS;
+
+  return Math.min(
+    FEED_MAX_COLUMNS,
+    Math.max(3, Math.floor(containerWidth / FEED_MIN_COLUMN_WIDTH))
+  );
+}
 
 export function getPoseFeedAspect(poseId: string, index = 0): PoseFeedAspect {
   let hash = index;

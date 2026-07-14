@@ -1,8 +1,47 @@
 import { matchesTextQuery, primePoseSearchHaystacks } from "@/lib/pose-search";
 import type { Pose, PoseFilters } from "@/lib/types";
 
-export function matchesPoseFilters(pose: Pose, filters: PoseFilters): boolean {
-  if (!matchesTextQuery(pose, filters.query)) return false;
+/** Mix results across selected categories so men are not pushed out by the 48-cap. */
+export function balanceCategoryFilterResults(poses: Pose[], filters: PoseFilters): Pose[] {
+  if (filters.categories.length <= 1) return poses;
+
+  const buckets = new Map<string, Pose[]>();
+  for (const category of filters.categories) {
+    buckets.set(category, []);
+  }
+
+  const overflow: Pose[] = [];
+  for (const pose of poses) {
+    const bucket = buckets.get(pose.category);
+    if (bucket) bucket.push(pose);
+    else overflow.push(pose);
+  }
+
+  const merged: Pose[] = [];
+  let index = 0;
+  let added = true;
+
+  while (added) {
+    added = false;
+    for (const category of filters.categories) {
+      const bucket = buckets.get(category);
+      const pose = bucket?.[index];
+      if (!pose) continue;
+      merged.push(pose);
+      added = true;
+    }
+    index += 1;
+  }
+
+  return [...merged, ...overflow];
+}
+
+export function matchesPoseFilters(
+  pose: Pose,
+  filters: PoseFilters,
+  queryVariants: string[] = []
+): boolean {
+  if (!matchesTextQuery(pose, filters.query, queryVariants)) return false;
 
   if (filters.categories.length && !filters.categories.includes(pose.category)) {
     return false;
@@ -38,11 +77,15 @@ export function matchesPoseFilters(pose: Pose, filters: PoseFilters): boolean {
   return true;
 }
 
-export function filterPoses(poses: Pose[], filters: PoseFilters): Pose[] {
+export function filterPoses(
+  poses: Pose[],
+  filters: PoseFilters,
+  queryVariants: string[] = []
+): Pose[] {
   if (!filters.query.trim()) {
     return poses.filter((pose) => matchesPoseFiltersWithoutQuery(pose, filters));
   }
-  return poses.filter((pose) => matchesPoseFilters(pose, filters));
+  return poses.filter((pose) => matchesPoseFilters(pose, filters, queryVariants));
 }
 
 function matchesPoseFiltersWithoutQuery(pose: Pose, filters: PoseFilters): boolean {

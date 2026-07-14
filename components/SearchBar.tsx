@@ -34,15 +34,17 @@ export function SearchBar({
     router.push("/search?filters=open");
   };
 
+  const iconSize = compact ? 14 : 15;
+
   return (
     <div className={`flex items-center ${compact ? "gap-2" : "gap-2.5"}`}>
       <div
         className={`angle-search-pill flex flex-1 items-center ${
-          compact ? "min-h-12 gap-2 px-3" : "min-h-12 gap-2.5 px-4"
+          compact ? "gap-2 px-3.5" : "gap-2.5 px-4"
         }`}
       >
         <SearchIcon
-          size={compact ? 15 : 17}
+          size={iconSize}
           className="shrink-0 text-[var(--text-tertiary)]"
           strokeWidth={2.2}
         />
@@ -62,21 +64,21 @@ export function SearchBar({
           }}
           placeholder={t("searchPlaceholder")}
           className={`w-full bg-transparent text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)] ${
-            compact ? "py-2 text-[14px]" : "py-3 text-[15px]"
+            compact ? "py-1.5 text-[13px] md:text-[13px]" : "py-2 text-[14px]"
           }`}
         />
       </div>
       <button
         type="button"
         onClick={openFilters}
-        className={`angle-search-filter relative flex shrink-0 items-center justify-center h-12 w-12 ${
+        className={`angle-search-filter relative flex items-center justify-center ${
           activeFilterCount > 0 ? "angle-search-filter-active" : ""
         }`}
         aria-label={t("searchFilters")}
       >
-        <SlidersHorizontal size={compact ? 16 : 18} strokeWidth={2.2} />
+        <SlidersHorizontal size={iconSize} strokeWidth={2.2} />
         {activeFilterCount > 0 ? (
-          <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold leading-none text-[var(--text-inverse)]">
+          <span className="absolute -right-1 -top-1 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold leading-none text-[var(--text-inverse)]">
             {activeFilterCount}
           </span>
         ) : null}

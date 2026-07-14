@@ -195,3 +195,25 @@ export async function translateTextToAllLanguages(
 
   return results;
 }
+
+const SEARCH_PIVOT_LANGUAGES: AppLanguage[] = ["en", "ru"];
+
+/** Fast query expansion: translate to English + Russian only (2 API calls max). */
+export async function translateToPivotLanguages(text: string): Promise<string[]> {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  const provider = getTranslateProvider();
+  if (provider === "none") return [];
+
+  const results: string[] = [];
+
+  await Promise.all(
+    SEARCH_PIVOT_LANGUAGES.map(async (lang) => {
+      const translated = await translateToTarget(trimmed, lang, provider);
+      if (translated) results.push(translated);
+    })
+  );
+
+  return results;
+}

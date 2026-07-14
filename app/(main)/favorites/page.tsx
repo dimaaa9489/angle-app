@@ -103,31 +103,31 @@ export default function FavoritesPage() {
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-[24px] font-bold">{t("favoritesTitle")}</h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            {t("favoritesSubtitle")}
-          </p>
+      <div className="angle-ui-shell">
+        <div className="angle-page-head mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h1>{t("favoritesTitle")}</h1>
+            <p>{t("favoritesSubtitle")}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const name = t("favoritesNewFolder");
+              const id = createFolder(name);
+              setActiveFolder(id);
+              setEditingId(id);
+              setEditName(name);
+            }}
+            className="angle-btn-icon p-2.5"
+            aria-label={t("favoritesAddFolder")}
+          >
+            <FolderPlus size={18} />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            const name = t("favoritesNewFolder");
-            const id = createFolder(name);
-            setActiveFolder(id);
-            setEditingId(id);
-            setEditName(name);
-          }}
-          className="angle-btn-icon p-3"
-          aria-label={t("favoritesAddFolder")}
-        >
-          <FolderPlus size={20} />
-        </button>
       </div>
 
       {activeFolder === null ? (
-        <div className="mb-5 grid grid-cols-2 gap-3">
+        <div className="angle-folders-grid mb-5">
           {folderCards.map(({ folder, total, previewPoses }, index) => (
             <motion.div
               key={folder.id}
@@ -139,21 +139,21 @@ export default function FavoritesPage() {
               <button
                 type="button"
                 onClick={() => setActiveFolder(folder.id)}
-                className="angle-folder-card relative block aspect-square w-full overflow-hidden p-3 text-left"
+                className="angle-folder-card relative block aspect-square w-full overflow-hidden p-2.5 text-left"
               >
-                <div className="grid h-full grid-cols-2 gap-2">
+                <div className="grid h-full grid-cols-2 gap-1.5">
                   {previewPoses.length ? (
                     previewPoses.map((pose) => (
                       <div
                         key={pose.id}
-                        className="relative overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-input)]"
+                        className="relative aspect-square overflow-hidden rounded-[calc(var(--radius-md)-2px)] bg-[var(--bg-input)]"
                       >
                         <Image
                           src={pose.imageUrl}
                           alt={pose.title}
                           fill
                           className="object-cover"
-                          sizes="25vw"
+                          sizes="120px"
                         />
                       </div>
                     ))
@@ -161,43 +161,43 @@ export default function FavoritesPage() {
                     Array.from({ length: 4 }).map((_, cellIndex) => (
                       <div
                         key={cellIndex}
-                        className="rounded-[var(--radius-md)] bg-[var(--accent-soft)]"
+                        className="aspect-square rounded-[calc(var(--radius-md)-2px)] bg-[var(--accent-soft)]"
                       />
                     ))
                   )}
                 </div>
-                <div className="absolute inset-x-3 bottom-3 rounded-[var(--radius-md)] bg-black/35 px-3 py-2 backdrop-blur-sm">
-                  <p className="text-sm font-bold text-white">
+                <div className="absolute inset-x-2.5 bottom-2.5 rounded-[calc(var(--radius-md)-2px)] bg-black/40 px-2.5 py-2 backdrop-blur-sm">
+                  <p className="truncate text-[13px] font-bold text-white">
                     {folder.isPinned ? t("favoritesSaved") : folder.name}
                   </p>
-                  <p className="mt-0.5 text-xs text-white/75">
+                  <p className="mt-0.5 text-[11px] text-white/75">
                     {t("favoritesPhotos", { count: total })}
                   </p>
                 </div>
               </button>
 
               {!folder.isPinned ? (
-                <div className="pointer-events-none absolute right-3 top-3 flex gap-1">
+                <div className="pointer-events-none absolute right-2 top-2 flex gap-1">
                   <button
                     type="button"
                     onClick={() => {
                       setEditingId(folder.id);
                       setEditName(folder.name);
                     }}
-                    className="pointer-events-auto angle-btn-icon p-2"
+                    className="pointer-events-auto angle-btn-icon p-1.5"
                     aria-label={t("favoritesRenameFolder")}
                   >
-                    <Pencil size={14} />
+                    <Pencil size={13} />
                   </button>
                   <button
                     type="button"
                     onClick={() => {
                       deleteFolder(folder.id);
                     }}
-                    className="pointer-events-auto angle-btn-icon p-2 text-[var(--accent-danger)]"
+                    className="pointer-events-auto angle-btn-icon p-1.5 text-[var(--accent-danger)]"
                     aria-label={t("favoritesDeleteFolder")}
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={13} />
                   </button>
                 </div>
               ) : null}
@@ -205,7 +205,7 @@ export default function FavoritesPage() {
           ))}
         </div>
       ) : (
-        <>
+        <div className="angle-ui-shell">
           <div className="mb-4 flex items-center gap-3">
             <button
               type="button"
@@ -213,23 +213,21 @@ export default function FavoritesPage() {
                 setActiveFolder(null);
                 setMenuPoseId(null);
               }}
-              className="angle-btn-icon p-3"
+              className="angle-btn-icon p-2.5"
               aria-label={t("favoritesBackFolders")}
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={16} />
             </button>
-            <div>
-              <h2 className="text-[22px] font-bold">
+            <div className="angle-page-head mb-0 min-w-0">
+              <h2 className="truncate text-[18px] font-bold">
                 {activeFolderMeta?.isPinned ? t("favoritesSaved") : activeFolderMeta?.name}
               </h2>
-              <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                {t("favoritesPhotos", { count: activePoses.length })}
-              </p>
+              <p>{t("favoritesPhotos", { count: activePoses.length })}</p>
             </div>
           </div>
 
           {activePoses.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="angle-feed-grid-responsive grid grid-cols-2 gap-3">
               {activePoses.map((pose) => (
                 <FavoritePoseCard
                   key={pose.id}
@@ -239,11 +237,12 @@ export default function FavoritesPage() {
               ))}
             </div>
           ) : null}
-        </>
+        </div>
       )}
 
       {editingId ? (
-        <GlassCard className="mb-4" padding="md">
+        <div className="angle-ui-shell">
+          <GlassCard className="mb-4" padding="md">
           <p className="mb-2 text-sm font-semibold text-[var(--text-secondary)]">
             {t("favoritesFolderName")}
           </p>
@@ -281,7 +280,8 @@ export default function FavoritesPage() {
               {t("commonCancel")}
             </button>
           </div>
-        </GlassCard>
+          </GlassCard>
+        </div>
       ) : null}
 
       <MotionSheet open={Boolean(menuPose && activeFolder)} onClose={() => setMenuPoseId(null)}>
@@ -377,18 +377,18 @@ function FavoritePoseCard({
       onPointerCancel={clearPressTimer}
       onContextMenu={openContextMenu}
     >
-      <div className="angle-popular-card h-40 overflow-hidden">
+      <div className="angle-popular-card relative aspect-[4/5] overflow-hidden">
         <Image
           src={pose.imageUrl}
           alt={pose.title}
           fill
           className="object-cover"
-          sizes="50vw"
+          sizes="(max-width: 640px) 50vw, 260px"
           draggable={false}
           onContextMenu={(e) => e.preventDefault()}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-        <p className="absolute bottom-2.5 left-2.5 right-2.5 text-sm font-bold text-white">
+        <p className="absolute bottom-2 left-2 right-2 truncate text-[13px] font-bold text-white">
           {pose.title}
         </p>
       </div>

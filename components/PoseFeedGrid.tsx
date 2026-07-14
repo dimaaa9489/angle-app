@@ -5,35 +5,44 @@ import { memo, useMemo } from "react";
 import { MotionCard } from "@/components/MotionCard";
 import { PoseFeedCard } from "@/components/PoseFeedCard";
 import { GlassCard } from "@/components/GlassCard";
+import { useFeedColumnCount } from "@/hooks/useFeedColumnCount";
 import { getPoseFeedAspect } from "@/lib/pose-feed-layout";
 import type { Pose } from "@/lib/types";
 import { useTranslation } from "@/hooks/useTranslation";
 
 function FeedColumn({
   items,
+  columnCount,
   enableDynamicBg,
 }: {
   items: { pose: Pose; index: number }[];
+  columnCount: number;
   enableDynamicBg: boolean;
 }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-3">
       {items.map(({ pose, index }) => (
-        <MotionCard
-          key={pose.id}
-          index={index}
-          className="break-inside-avoid"
-        >
+        <MotionCard key={pose.id} index={index} className="break-inside-avoid">
           <PoseFeedCard
             pose={pose}
-            aspect={getPoseFeedAspect(pose.id, Math.floor(index / 2))}
-            priority={index < 6}
+            aspect={getPoseFeedAspect(pose.id, Math.floor(index / columnCount))}
+            priority={index < columnCount * 3}
             enableDynamicBg={enableDynamicBg}
           />
         </MotionCard>
       ))}
     </div>
   );
+}
+
+function distributeToColumns(poses: Pose[], columnCount: number) {
+  const columns = Array.from({ length: columnCount }, () => [] as { pose: Pose; index: number }[]);
+
+  poses.forEach((pose, index) => {
+    columns[index % columnCount].push({ pose, index });
+  });
+
+  return columns;
 }
 
 export const PoseFeedGrid = memo(function PoseFeedGrid({
@@ -44,17 +53,12 @@ export const PoseFeedGrid = memo(function PoseFeedGrid({
   enableDynamicBg?: boolean;
 }) {
   const { t } = useTranslation();
-  const { leftColumn, rightColumn } = useMemo(() => {
-    const left: { pose: Pose; index: number }[] = [];
-    const right: { pose: Pose; index: number }[] = [];
+  const columnCount = useFeedColumnCount();
 
-    poses.forEach((pose, index) => {
-      if (index % 2 === 0) left.push({ pose, index });
-      else right.push({ pose, index });
-    });
-
-    return { leftColumn: left, rightColumn: right };
-  }, [poses]);
+  const columns = useMemo(
+    () => distributeToColumns(poses, columnCount),
+    [poses, columnCount]
+  );
 
   if (!poses.length) {
     return (
@@ -68,9 +72,15 @@ export const PoseFeedGrid = memo(function PoseFeedGrid({
   }
 
   return (
-    <div className="angle-feed-masonry flex gap-3">
-      <FeedColumn items={leftColumn} enableDynamicBg={enableDynamicBg} />
-      <FeedColumn items={rightColumn} enableDynamicBg={enableDynamicBg} />
+    <div className="angle-feed-masonry flex w-full gap-3">
+      {columns.map((items, columnIndex) => (
+        <FeedColumn
+          key={columnIndex}
+          items={items}
+          columnCount={columnCount}
+          enableDynamicBg={enableDynamicBg}
+        />
+      ))}
     </div>
   );
 });

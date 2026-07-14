@@ -9,7 +9,8 @@ import { expandTextForSearch, normalizeSearchText } from "@/lib/i18n/search-word
 const LABEL_TO_FILTER_IDS = new Map<string, string[]>();
 
 function addLabelMapping(norm: string, filterId: string) {
-  if (!norm || norm.length < 2) return;
+  if (!norm) return;
+  if (norm.length < 3 && norm !== "1" && norm !== "2" && norm !== "3+") return;
   const list = LABEL_TO_FILTER_IDS.get(norm) ?? [];
   if (!list.includes(filterId)) list.push(filterId);
   LABEL_TO_FILTER_IDS.set(norm, list);
@@ -83,7 +84,7 @@ export function expandTextToSearchKeywords(text: string): string[] {
   }
 
   for (const word of normalized.split(/\s+/)) {
-    if (word.length > 1) parts.add(word);
+    if (word.length > 2 || word === "1" || word === "2" || word === "3+") parts.add(word);
   }
 
   parts.add(normalized);
@@ -104,7 +105,7 @@ export function expandQueryVariants(query: string): string[] {
   const variants = new Set<string>(expandTextToSearchKeywords(query));
   variants.add(normalized);
 
-  const tokens = normalized.split(/\s+/).filter((token) => token.length > 1);
+  const tokens = normalized.split(/\s+/).filter((token) => token.length > 2);
   for (const token of tokens) {
     for (const expanded of expandTextToSearchKeywords(token)) {
       variants.add(expanded);

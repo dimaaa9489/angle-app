@@ -28,7 +28,7 @@ export const PoseFeedCard = memo(function PoseFeedCard({
   enableDynamicBg = false,
 }: PoseFeedCardProps) {
   const pathname = usePathname();
-  const src = getFeedImageSrc(pose.imageUrl);
+  const src = getFeedImageSrc(pose.imageUrl, 560);
   const cardRef = useRef<HTMLAnchorElement>(null);
   const cardId = useId();
   const [cardRgb, setCardRgb] = useState<string | null>(null);
@@ -89,17 +89,18 @@ export const PoseFeedCard = memo(function PoseFeedCard({
       }}
     >
       <div
-        className={`angle-popular-card relative overflow-hidden ${POSE_FEED_HEIGHT[aspect]}`}
+        className={`angle-popular-card relative w-full overflow-hidden ${POSE_FEED_HEIGHT[aspect]}`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
           alt={pose.title}
-          width={420}
-          height={aspect === "tall" ? 560 : aspect === "short" ? 360 : 462}
+          width={560}
+          height={aspect === "tall" ? 747 : aspect === "short" ? 448 : 700}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
           fetchPriority={priority ? "high" : "low"}
+          sizes="(max-width: 640px) 50vw, 280px"
           className="absolute inset-0 h-full w-full object-cover"
           draggable={false}
           onContextMenu={(e) => e.preventDefault()}

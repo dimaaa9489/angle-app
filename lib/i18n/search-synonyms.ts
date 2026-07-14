@@ -1,9 +1,15 @@
-import type { FilterGroupKey } from "@/lib/i18n/filter-labels";
+import {
+  getAllFilterIds,
+  getAllLabelsForFilterId,
+  getFilterGroupKeyForId,
+  type FilterGroupKey,
+} from "@/lib/i18n/filter-labels";
+import { normalizeSearchText } from "@/lib/i18n/search-words";
 
 export type SynonymFilterMap = Partial<Record<FilterGroupKey, string[]>>;
 
-/** Maps informal / synonym queries to filter IDs. */
-export const SEARCH_SYNONYM_TO_FILTERS: Record<string, SynonymFilterMap> = {
+/** Informal / extra synonym queries — override auto-generated filter labels. */
+const MANUAL_SEARCH_SYNONYM_TO_FILTERS: Record<string, SynonymFilterMap> = {
   girl: { categories: ["women"] },
   girls: { categories: ["women"] },
   woman: { categories: ["women"] },
@@ -150,6 +156,69 @@ export const SEARCH_SYNONYM_TO_FILTERS: Record<string, SynonymFilterMap> = {
 
   selfie: { shotTypes: ["close-up", "portrait"] },
   селфи: { shotTypes: ["close-up", "portrait"] },
+
+  home: { locations: ["home"] },
+  house: { locations: ["home"] },
+  apartment: { locations: ["home"] },
+  flat: { locations: ["home"] },
+  interior: { locations: ["home"] },
+  indoors: { locations: ["home", "studio"] },
+  indoor: { locations: ["home", "studio"] },
+  dom: { locations: ["home"] },
+  дом: { locations: ["home"] },
+  дома: { locations: ["home"] },
+  домаш: { locations: ["home"] },
+  домашняя: { locations: ["home"] },
+  домашний: { locations: ["home"] },
+  квартира: { locations: ["home"] },
+  квартире: { locations: ["home"] },
+  интерьер: { locations: ["home", "loft"] },
+  интерьере: { locations: ["home", "loft"] },
+  кімната: { locations: ["home"] },
+  zuhause: { locations: ["home"] },
+  interieur: { locations: ["home"] },
+  interiér: { locations: ["home"] },
+  intérieur: { locations: ["home"] },
+  appartement: { locations: ["home"] },
+  wohnung: { locations: ["home"] },
+  piso: { locations: ["home"] },
+  casa: { locations: ["home"] },
+  maison: { locations: ["home"] },
+};
+
+function buildAutoLabelSynonyms(): Record<string, SynonymFilterMap> {
+  const result: Record<string, SynonymFilterMap> = {};
+
+  const addToken = (token: string, group: FilterGroupKey, id: string) => {
+    const key = token.trim().toLowerCase().replace(/ё/g, "е");
+    if (key.length < 3 && key !== "1" && key !== "2" && key !== "3+") return;
+    const existing = result[key]?.[group] ?? [];
+    if (existing.includes(id)) return;
+    result[key] = { ...result[key], [group]: [...existing, id] };
+  };
+
+  for (const id of getAllFilterIds()) {
+    const group = getFilterGroupKeyForId(id);
+    if (!group) continue;
+
+    addToken(normalizeSearchText(id), group, id);
+    addToken(normalizeSearchText(id.replace(/-/g, " ")), group, id);
+
+    for (const label of getAllLabelsForFilterId(id)) {
+      const norm = normalizeSearchText(label);
+      addToken(norm, group, id);
+      for (const word of norm.split(/\s+/)) {
+        addToken(word, group, id);
+      }
+    }
+  }
+
+  return result;
+}
+
+export const SEARCH_SYNONYM_TO_FILTERS: Record<string, SynonymFilterMap> = {
+  ...buildAutoLabelSynonyms(),
+  ...MANUAL_SEARCH_SYNONYM_TO_FILTERS,
 };
 
 export function getSynonymFiltersForToken(token: string): SynonymFilterMap | null {

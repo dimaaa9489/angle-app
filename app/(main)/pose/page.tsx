@@ -103,13 +103,13 @@ function PoseDetailInner() {
   };
 
   return (
-    <>
+    <div className="angle-ui-detail-shell">
       <button
         type="button"
         onClick={goBack}
-        className="angle-btn-icon mb-3 inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold"
+        className="angle-btn-icon mb-3 inline-flex items-center gap-2 px-3 py-2 text-[13px] font-semibold"
       >
-        <ArrowLeft size={18} />
+        <ArrowLeft size={16} />
         {t("commonBack")}
       </button>
 
@@ -117,48 +117,46 @@ function PoseDetailInner() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="relative mb-4 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-elevated)] shadow-[var(--shadow-md)]"
+        className="relative mb-4 flex justify-center"
         onContextMenu={(e) => e.preventDefault()}
       >
-        <div className="relative h-[64dvh] min-h-[420px]">
-          <Image
-            src={pose.imageUrl}
-            alt={pose.title}
-            fill
-            className="object-cover select-none"
-            sizes="100vw"
-            draggable={false}
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-        </div>
+        <Image
+          src={pose.imageUrl}
+          alt={pose.title}
+          width={1200}
+          height={1600}
+          className="angle-pose-hero-image"
+          sizes="(max-width: 768px) 100vw, 480px"
+          draggable={false}
+          priority
+        />
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-        className="angle-inner-glass mb-4 p-4"
+        className="angle-inner-glass mb-4 p-4 md:p-5"
       >
         <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--text-tertiary)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
             Angle
           </p>
-          <h1 className="mt-1 text-[28px] font-extrabold leading-tight">
+          <h1 className="mt-1 text-[22px] font-extrabold leading-tight md:text-[20px]">
             {pose.title}
           </h1>
         </div>
 
         {infoChips.length ? (
-          <div className="mb-4 flex flex-wrap gap-2">
+          <div className="mb-4 flex flex-wrap gap-1.5">
             {infoChips.map((chip) => {
               const Icon = chip.icon;
               return (
                 <div
                   key={chip.key}
-                  className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-chip)] px-3 py-1.5 text-xs font-semibold"
+                  className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-chip)] px-2.5 py-1 text-[11px] font-semibold"
                 >
-                  <Icon size={13} className="text-[var(--text-secondary)]" />
+                  <Icon size={12} className="text-[var(--text-secondary)]" />
                   <span className="capitalize">{chip.label}</span>
                 </div>
               );
@@ -171,11 +169,11 @@ function PoseDetailInner() {
             type="button"
             onClick={() => toggleStar(pose.id)}
             data-active={isStarred}
-            className="angle-btn-icon h-12"
+            className="angle-btn-icon h-10 md:h-9"
             aria-label={t("poseLike")}
           >
             <Heart
-              size={19}
+              size={17}
               className={isStarred ? "fill-[var(--accent-like)] text-[var(--accent-like)]" : undefined}
             />
           </button>
@@ -183,18 +181,18 @@ function PoseDetailInner() {
             type="button"
             onClick={openFolderPicker}
             data-active={isInCustomFolder}
-            className="angle-btn-icon h-12"
+            className="angle-btn-icon h-10 md:h-9"
             aria-label={t("poseAddFolder")}
           >
-            <FolderPlus size={19} />
+            <FolderPlus size={17} />
           </button>
           <button
             type="button"
             onClick={share}
-            className="angle-btn-primary h-12"
+            className="angle-btn-primary h-10 md:h-9"
             aria-label={t("poseShare")}
           >
-            <Share2 size={19} />
+            <Share2 size={17} />
           </button>
         </div>
       </motion.div>
@@ -236,7 +234,7 @@ function PoseDetailInner() {
           })}
         </div>
       </MotionSheet>
-    </>
+    </div>
   );
 }
 

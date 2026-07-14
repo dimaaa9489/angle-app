@@ -39,6 +39,14 @@
   --radius-lg: 14px;
   --radius-pill: 999px;
 
+  --ui-control-h: 2.75rem;
+  --ui-control-h-sm: 2.25rem;
+  --ui-search-max: 36rem;
+  --ui-panel-max: 36rem;
+  --ui-detail-max: 32rem;
+  --ui-pose-image-max-h: min(72dvh, 760px);
+  --ui-pose-image-max-w: 480px;
+
   --motion-fast: 150ms;
   --motion-base: 250ms;
   --motion-slow: 500ms;
@@ -132,6 +140,103 @@ body {
 .angle-content {
   position: relative;
   z-index: 2;
+}
+
+.angle-ui-shell {
+  width: 100%;
+  max-width: var(--ui-panel-max);
+  margin-inline: auto;
+}
+
+.angle-ui-search-shell {
+  width: 100%;
+  max-width: var(--ui-search-max);
+  margin-inline: auto;
+}
+
+.angle-search-panel {
+  width: 100%;
+}
+
+.angle-search-panel-head {
+  margin-bottom: 0.75rem;
+}
+
+.angle-search-panel-head .angle-page-head {
+  margin-bottom: 0;
+}
+
+.angle-ui-detail-shell {
+  width: 100%;
+  max-width: var(--ui-detail-max);
+  margin-inline: auto;
+}
+
+.angle-page-head {
+  margin-bottom: 1rem;
+}
+
+.angle-page-head h1 {
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.angle-page-head p {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+@media (min-width: 768px) {
+  .angle-page-head h1 {
+    font-size: 1.25rem;
+  }
+}
+
+.angle-settings-panel {
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.angle-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.angle-settings-row:last-child {
+  border-bottom: 0;
+}
+
+.angle-folders-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 641px) {
+  .angle-folders-grid {
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    max-width: 56rem;
+    margin-inline: auto;
+  }
+}
+
+.angle-pose-hero-image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(100%, var(--ui-pose-image-max-w));
+  max-height: var(--ui-pose-image-max-h);
+  border-radius: var(--radius-md);
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .angle-bottom-nav-shell {
@@ -242,10 +347,16 @@ body {
 }
 
 .angle-search-pill {
-  min-height: 48px;
-  border-radius: var(--radius-sm);
+  min-height: var(--ui-control-h);
+  border-radius: var(--radius-pill);
   background: var(--search-fill);
   border: 1px solid var(--border);
+}
+
+@media (min-width: 768px) {
+  .angle-search-pill {
+    min-height: var(--ui-control-h-sm);
+  }
 }
 
 .angle-feed-grid {
@@ -253,7 +364,15 @@ body {
 }
 
 .angle-feed-masonry {
+  display: flex;
+  align-items: flex-start;
   contain: layout style;
+}
+
+@media (min-width: 641px) {
+  .angle-feed-grid-responsive {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
 }
 
 .angle-home-header-bar {
@@ -270,13 +389,21 @@ body {
 }
 
 .angle-search-filter {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-sm);
+  width: var(--ui-control-h);
+  height: var(--ui-control-h);
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
   background: var(--search-filter);
   border: 1px solid var(--border);
   color: var(--text-primary);
   transition: transform var(--motion-fast) var(--ease-out);
+}
+
+@media (min-width: 768px) {
+  .angle-search-filter {
+    width: var(--ui-control-h-sm);
+    height: var(--ui-control-h-sm);
+  }
 }
 
 .angle-search-filter:active {
@@ -413,7 +540,20 @@ body {
   backdrop-filter: blur(24px) saturate(160%);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   box-shadow: var(--shadow-sm);
-  transition: transform var(--motion-fast) var(--ease-out);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out);
+}
+
+@media (min-width: 641px) {
+  .angle-folder-card {
+    max-width: 220px;
+    margin-inline: auto;
+  }
+
+  .angle-folder-card:hover {
+    box-shadow: var(--shadow-md);
+  }
 }
 
 .angle-folder-card:active {

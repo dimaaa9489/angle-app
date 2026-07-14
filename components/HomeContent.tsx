@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { useAuth, getGreeting } from "@/components/AuthProvider";
 import { PoseFeedGrid } from "@/components/PoseFeedGrid";
-import { SearchBar } from "@/components/SearchBar";
+import { SearchPanel } from "@/components/SearchPanel";
 import { useHomeHeaderScroll } from "@/hooks/useHomeHeaderScroll";
 import { useScrollRestore } from "@/hooks/useScrollRestore";
 import { mergeUniquePoses } from "@/lib/pose-feed-layout";
@@ -188,25 +188,27 @@ export function HomeContent() {
     <>
       <div
         ref={headerRef}
-        className="angle-home-header-bar angle-home-header-visible fixed inset-x-0 top-0 z-30 mx-auto w-full max-w-lg px-4 pt-[max(10px,env(safe-area-inset-top))]"
+        className="angle-home-header-bar angle-home-header-visible fixed inset-x-0 top-0 z-30 mx-auto w-full px-4 pt-[max(10px,env(safe-area-inset-top))] md:flex md:justify-center md:px-6 lg:px-8"
       >
         <div
           ref={headerInnerRef}
-          className={`angle-inner-glass p-4 ${
+          className={`angle-inner-glass angle-ui-shell w-full p-4 md:p-5 ${
             headerScrolled ? "angle-home-header-scrolled shadow-[var(--shadow-sm)]" : ""
           }`}
         >
-          <p className="mb-0.5 text-[13px] font-medium text-[var(--text-secondary)]">
-            {getGreeting(firstName, language)}
-          </p>
-          <h1 className="mb-2.5 text-[18px] font-bold leading-tight">
-            {t("homeTitle")}
-          </h1>
-
-          <SearchBar
-            compact
+          <SearchPanel
             onFilterClick={() => router.push("/search?filters=open")}
             onSubmit={openSearch}
+            header={
+              <>
+                <p className="mb-0.5 text-[13px] font-medium text-[var(--text-secondary)]">
+                  {getGreeting(firstName, language)}
+                </p>
+                <h1 className="text-[18px] font-bold leading-tight md:text-[17px]">
+                  {t("homeTitle")}
+                </h1>
+              </>
+            }
           />
         </div>
       </div>
